@@ -22,7 +22,6 @@ People keep control of which tickets the AI takes, the plan, which review findin
 | [Interactive walkthrough](https://claude.ai/artifact/KJg6vD2LFhFmHKvj1shLTi) | The walkthrough with diagrams (also linked at the top of [docs/PROJECT.md](docs/PROJECT.md)) |
 | [CLAUDE.md](CLAUDE.md) | Master context: contracts, graph, commands, guardrails (also read by Claude Code) |
 | [docs/PROGRESS.md](docs/PROGRESS.md) | Decisions, known issues, measurements, session log |
-| [docs/DESIGN.md](docs/DESIGN.md) | The early design (history) |
 
 ## Setup
 

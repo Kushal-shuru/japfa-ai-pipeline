@@ -34,7 +34,7 @@ A typical backend ticket touches **the gateway + one or more services**. Every r
 
 Two layers: the **orchestrator** talks to people in templates; **Claude/Codex agents** are the engine (plan, code, review, docs, a tiny `summary` run for short plain texts, D209, and a small `criteria` run that copies the acceptance criteria out of the ticket, D218). Agents run as named **slots** in an agent pool (Coder-A, Coder-B, Reviewer-A, …), each on a **switchable provider**: **Claude** (Claude Agent SDK) or **Codex** (`codex exec`), with subscription auth by default (§4.1).
 
-Full rationale: `docs/DESIGN.md` (written early; where it disagrees with this file or with a decision in `docs/PROGRESS.md`, **this file and the decisions win**). Setup: `docs/SETUP.md`; using it: `docs/GUIDE.md`; what it is and how it is built: `docs/PROJECT.md`.
+Where this file disagrees with a decision in `docs/PROGRESS.md`, **this file and the decisions win**. Setup: `docs/SETUP.md`; using it: `docs/GUIDE.md`; what it is and how it is built: `docs/PROJECT.md`.
 
 ---
 
@@ -271,7 +271,7 @@ ai-sdlc-pipeline/
 ├── pyproject.toml                   # [P1]
 ├── .env.example                     # [P1]
 ├── pipeline.config.example.yaml     # [P1]
-├── docs/                            # SETUP.md (install + configure), GUIDE.md (use), PROJECT.md (features + architecture), PROGRESS.md, DESIGN.md
+├── docs/                            # SETUP.md (install + configure), GUIDE.md (use), PROJECT.md (features + architecture), PROGRESS.md
 ├── pipeline/
 │   ├── cli.py                       # [P1] grows each phase
 │   ├── config.py                    # [P1]

@@ -5,7 +5,7 @@
 Read this to know every feature of the pipeline and how it works inside. To install it:
 [SETUP.md](SETUP.md). To use it day to day: [GUIDE.md](GUIDE.md). The exact data contracts, tables and
 guardrails are in [CLAUDE.md](../CLAUDE.md); every design decision, with its reason, is a row in
-[PROGRESS.md](PROGRESS.md) (D-numbers below); [DESIGN.md](DESIGN.md) is the early design (history).
+[PROGRESS.md](PROGRESS.md) (D-numbers below).
 
 ---
 
@@ -309,7 +309,7 @@ pipeline/
   findings.py acceptance.py bugs.py  finding ids/numbers/scopes; criteria evidence; QA bugs
   events.py pause.py reminders.py maintenance.py report.py logs.py environment.py safe_env.py  pollers, pause, gc/demo-reset, reports, machine-problem detection
 prompts/                           one markdown prompt per role
-docs/                              SETUP, GUIDE, PROJECT, PROGRESS (decisions, known issues), DESIGN (history)
+docs/                              SETUP, GUIDE, PROJECT, PROGRESS (decisions, known issues)
 ```
 
 Runtime data: `$PIPELINE_HOME` (see SETUP §2). Conventions (CLAUDE.md §6): type hints; nodes take
