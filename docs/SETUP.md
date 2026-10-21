@@ -146,23 +146,20 @@ Fallbacks without fields: `Repos: a, b` and `Spec: <url>` lines in the descripti
 
 ## 5. GitLab
 
-The pipeline acts as two GitLab **users** so the merge request's author and its approver differ,
-as in your real process:
+For now the pipeline uses **one GitLab account**: create a personal access token from **your own
+account** and use the same token for both roles (the "coder" that pushes and opens merge requests,
+and the "reviewer" that comments and approves). No separate bot users are needed yet.
 
-| User | Role in each repo | Token scopes | Does |
-|---|---|---|---|
-| **Coder** (`ai-coder`) | Developer | `api`, `write_repository` → `GITLAB_CODER_TOKEN` | Pushes `ai/<KEY>-…` branches, opens merge requests, replies to threads |
-| **Reviewer** (`ai-reviewer`) | Developer, with approval rights | `api` → `GITLAB_REVIEWER_TOKEN` | Posts the review summary, comments, resolves threads, approves |
-
-Use bot users, never a person's account. Each needs its own email (a `+reviewer` alias often works).
-
-- [ ] Create the two users and verify their emails
-- [ ] Add both to **every** product repository (Manage → Members) as **Developer**
-- [ ] Each user: avatar → Edit profile → Access tokens → create a personal access token with the scopes above and an expiry → `.env`
+- [ ] Your account is a member of **every** product repository (Manage → Members) with at least **Developer** access (the right to push branches, open merge requests and approve)
+- [ ] Avatar → Edit profile → Access tokens → create a personal access token with the scopes `api` and `write_repository` and an expiry
+- [ ] Put that **same token in both variables** in `.env`:
+  `GITLAB_CODER_TOKEN=<your token>`
+  `GITLAB_REVIEWER_TOKEN=<your token>`
+- [ ] In `pipeline.config.yaml`, `git.allow_same_gitlab_identity: true` (already the value in the example config). Without it `pipeline check` refuses two roles that are the same user.
+- [ ] GitLab must allow you to **approve your own merge request** (Settings → Merge requests → Approval settings: allow approval by the author; some plans or instance policies forbid it, then ask an admin). The merge requests the pipeline opens and approves then show your name for both.
 - [ ] `GITLAB_BASE_URL=https://<your GitLab host>` in `.env` (no trailing path). If it is internal, the machine needs the **VPN**.
 - [ ] **The branch merge requests target.** Every ticket branch starts from, and every merge request goes to, the repo's `default_branch` from the config. Protect it (Settings → Repository → Protected branches: nobody pushes directly; people merge). The pipeline never pushes to it.
   - Our company repos use a branch called `pipeline_develop` (a copy of `develop` the pipeline may target). Create it once and keep it current: `git checkout develop && git pull && git push origin develop:pipeline_develop`.
-- [ ] **One account for both roles** (small teams): set `git.allow_same_gitlab_identity: true` in the config and put the same token in both variables. GitLab must allow approving your own merge request.
 - [ ] Per repository, write down its **project path** (`group/subgroup/project`, from the URL after the host). It goes in `.env` as `REPO_<NAME>_GITLAB_PROJECT` (§8).
 
 ## 6. Google Docs (the tech spec)
@@ -212,7 +209,7 @@ Edit `.env` (copied from `.env.example`). Nothing here is ever committed. `*` = 
 | `JIRA_EMAIL`*, `JIRA_API_TOKEN`* | | The pipeline's Jira user (§4) |
 | `JIRA_PROJECT`* | `DEMO` | Project key; tickets must start with it |
 | `GITLAB_BASE_URL`* | `https://gitlab.example.com` | GitLab host |
-| `GITLAB_CODER_TOKEN`*, `GITLAB_REVIEWER_TOKEN`* | | The two users' tokens (§5) |
+| `GITLAB_CODER_TOKEN`*, `GITLAB_REVIEWER_TOKEN`* | | Your personal access token, the **same one in both** for now (§5) |
 | `REPO_<NAME>_GITLAB_PROJECT`* | `closio/backend/nodejs-ws1closio` | One per repo in the config |
 | `REPO_<NAME>_ENV_FROM` | `~/Documents/Japfa/nodejs-ws1closio/.env` | One per repo: the developer clone's `.env` for live tests |
 | `GOOGLE_OAUTH_CLIENT_PATH`*, `GOOGLE_TOKEN_PATH`* | absolute paths | Google login files (§6) |
