@@ -33,8 +33,7 @@ the repo they work in.
 ## 2. Feature catalogue
 
 **Intake**
-- `implement KEY` asks for the tech-spec link (validated: must be a readable Google Doc) and the repositories (a numbered list from the config); Jira custom fields are optional. Never guesses repos.
-- Optional automatic pickup of Jira tickets (`gates.start: auto`, label `ai-ready`).
+- `implement KEY` asks for the tech spec (validated: a readable Google Doc link, or with `TECH_SPEC_SOURCE=local` a document picked from the `tech_spec/` folder) and the repositories (a numbered list from the config). Nothing needs to be set up in Jira for them. Never guesses repos.
 
 **Planning**
 - A read-only Planner reads the ticket, the relevant spec sections and the repos; writes per-repo tasks, the coding order, an **interface contract** between gateway and services (endpoints, schemas, errors, error mapping), and maps **every acceptance criterion** to a task (nothing may be left uncovered).

@@ -1,7 +1,7 @@
 # SETUP: from an empty machine to a running pipeline
 
 Follow this file top to bottom and you can run the whole project: install it, connect Jira, GitLab,
-Google Docs and the AI agents, point it at your repositories, and take a first ticket from Jira to
+the tech specs and the AI agents, point it at your repositories, and take a first ticket from Jira to
 merge requests. Day-to-day use is in [GUIDE.md](GUIDE.md); what the system is and how it is built is
 in [PROJECT.md](PROJECT.md).
 
@@ -12,7 +12,7 @@ Every step has a checkbox. Section 13 is the final test: when it passes, you are
 ```
  you (terminal)  ──►  pipeline cli  ──►  Jira (tickets, status, audit comments)
                           │          ──►  GitLab (branches, merge requests, reviews)
-                          │          ──►  Google Docs (the tech spec)
+                          │          ──►  tech_spec/ folder or Google Docs (the tech spec)
                           ▼
               AI agents (Claude Code / Codex) working in git worktrees
               under ~/.ai-pipeline, one folder per ticket
@@ -31,7 +31,8 @@ for a second machine.
 | Access to the product repositories in GitLab (and the VPN, if GitLab is internal) | The agents work on clones of them |
 | A Jira project, with the right to add a bot account or API token | Tickets and status |
 | A Claude subscription and/or a ChatGPT (Codex) subscription, or API keys | The agents |
-| A Google account that can read the tech-spec documents | Specs are Google Docs |
+| The tech-spec documents as files (`.docx`, `.md` or `.txt`) to put in `tech_spec/` (default), **or** a Google account that can read them as Google Docs | See §6 |
+| A GitLab account of your own that can push, open merge requests and approve in the repos | One personal access token does both jobs for now (§5) |
 | Optional, for live acceptance tests: read/write access to a **development** database, Redis installed locally | See §10 |
 
 ---
@@ -137,12 +138,7 @@ Cloud, any plan. A project (key used below: `DEMO`).
 - [ ] **QA bugs are separate Jira tickets** (the bug in the description). Nothing to configure: QA creates them, and the developer passes their keys to `fix` (GUIDE §8).
 - [ ] Jira comment commands (`/stop`, `/retry`, `/guide …`) work for anyone who can comment on the ticket. Keep comment permission to the team.
 
-**Custom fields are optional.** `implement KEY` asks for the tech-spec link and the repositories
-in the terminal. Only if tickets still carry them as Jira fields (or for Jira pickup), add a
-**Repos** checkbox field (one option per repo name in the config) and a **Tech Spec URL** field,
-find their ids (open `https://<site>.atlassian.net/rest/api/3/issue/DEMO-1?expand=names` and look for
-`customfield_10XXX` next to the field names) and set `JIRA_REPOS_FIELD` / `JIRA_SPEC_FIELD` in `.env`.
-Fallbacks without fields: `Repos: a, b` and `Spec: <url>` lines in the description.
+**No custom Jira fields are needed.** `implement KEY` asks for the tech spec and the repositories in the terminal; nothing about them is read from the ticket.
 
 ## 5. GitLab
 
@@ -162,10 +158,31 @@ and the "reviewer" that comments and approves). No separate bot users are needed
   - Our company repos use a branch called `pipeline_develop` (a copy of `develop` the pipeline may target). Create it once and keep it current: `git checkout develop && git pull && git push origin develop:pipeline_develop`.
 - [ ] Per repository, write down its **project path** (`group/subgroup/project`, from the URL after the host). It goes in `.env` as `REPO_<NAME>_GITLAB_PROJECT` (§8).
 
-## 6. Google Docs (the tech spec)
+Later, if you want the review to come from a different identity: create a second user (a bot) with
+Developer access and approval rights and an `api`-scoped token, put it in `GITLAB_REVIEWER_TOKEN`,
+and set `git.allow_same_gitlab_identity: false`.
 
-The pipeline reads the spec documents through Google's API as **you**, read-only. You create a small
-private "app" once; a browser login then grants it access.
+## 6. The tech spec (local folder or Google Docs)
+
+`implement KEY` needs a tech spec for the ticket. Where it comes from is set by
+`TECH_SPEC_SOURCE` in `.env` (or `spec.source` in the config):
+
+| Value | What `implement` does |
+|---|---|
+| `local` (default) | Lists the documents in the pipeline's `tech_spec/` folder; you type the number or the file name |
+| `google-doc` | Asks for a Google Doc link and reads it through Google's API (set up below) |
+
+**Local (default).** Nothing to install and no Google login.
+
+- [ ] Put the tech spec documents in the `tech_spec/` folder of the pipeline repository (or set `TECH_SPEC_DIR` to another folder). Supported: **`.docx`** (Word, also a Google Doc downloaded with File → Download → Microsoft Word), `.md`, `.markdown`, `.txt`. A Word document is converted to text automatically: headings (Heading 1–6), lists, tables, bold/italic and links are kept; images and text boxes are not. Use real Heading styles, not just big bold text, so the planner can find a ticket's section. Old `.doc` files are not supported: save them as `.docx`.
+- [ ] The folder's contents are git-ignored (only `.gitkeep` is tracked), so specs are never committed.
+- [ ] `implement KEY` then shows `Tech specs available: 1. … 2. …` and asks `Tech spec number (or file name):`. A missing or empty folder stops the start with the reason.
+- [ ] A spec is read again every time the planner runs, so you can edit the file and then `retry` or `guide`.
+- [ ] Use real headings and the same names for routes, fields and error codes as the tickets, so the planner can find a ticket's section.
+
+**Google Docs** (only with `TECH_SPEC_SOURCE=google-doc`, or for tickets that still carry a Google
+link in Jira). The pipeline reads the spec documents through Google's API as **you**, read-only. You
+create a small private "app" once; a browser login then grants it access.
 
 - [ ] https://console.cloud.google.com → create a project (e.g. `ai-sdlc-pipeline`)
 - [ ] APIs & Services → Library → enable **Google Drive API** and **Google Docs API**
@@ -180,7 +197,7 @@ private "app" once; a browser login then grants it access.
 Good to know:
 - An External app in *Testing* mode logs you out after about 7 days: run `pipeline check --spec-url …` again.
 - On a company Workspace the admin may block unverified apps: create the Cloud project inside the company organisation and choose **Internal**, or ask the admin to allow the app.
-- The spec link given to `implement` must be a **Google Doc** (`docs.google.com/document/d/<id>`) the signed-in account can read. Use real headings (Heading 1/2/3) and the same names for routes, fields and error codes as the tickets, so the planner can find a ticket's section.
+- The link given to `implement` must be a **Google Doc** (`docs.google.com/document/d/<id>`) the signed-in account can read. Use real headings (Heading 1/2/3) and the same names for routes, fields and error codes as the tickets.
 - For a server without a browser: do the first login on a laptop and copy `google_token.json`, or use a service account with the spec folder shared to it.
 
 ## 7. Prepare the product repositories
@@ -212,10 +229,11 @@ Edit `.env` (copied from `.env.example`). Nothing here is ever committed. `*` = 
 | `GITLAB_CODER_TOKEN`*, `GITLAB_REVIEWER_TOKEN`* | | Your personal access token, the **same one in both** for now (§5) |
 | `REPO_<NAME>_GITLAB_PROJECT`* | `closio/backend/nodejs-ws1closio` | One per repo in the config |
 | `REPO_<NAME>_ENV_FROM` | `~/Documents/Japfa/nodejs-ws1closio/.env` | One per repo: the developer clone's `.env` for live tests |
-| `GOOGLE_OAUTH_CLIENT_PATH`*, `GOOGLE_TOKEN_PATH`* | absolute paths | Google login files (§6) |
+| `GOOGLE_OAUTH_CLIENT_PATH`, `GOOGLE_TOKEN_PATH` | absolute paths | Google login files (§6); only with `TECH_SPEC_SOURCE=google-doc` |
 | `PIPELINE_HOME`* | `/Users/you/.ai-pipeline` | The data folder (§2) |
 | `CLAUDE_CODE_OAUTH_TOKEN` | | From `claude setup-token` (§3) |
 | `ANTHROPIC_API_KEY`, `OPENAI_API_KEY` | | Only for `auth: api_key` |
+| `TECH_SPEC_SOURCE` | `local` (default) or `google-doc` | Where `implement` gets the tech spec: a file you put in `tech_spec/` (`.docx`, `.md`, `.markdown`, `.txt`; folder via `TECH_SPEC_DIR`), or a Google Doc link. `local` needs no Google login (§6) |
 | `REVIEW_MODE` | `local` (default) or `gitlab` | Where the code review happens (PROJECT §7) |
 | `ACCEPTANCE_ALLOWED_DB_HOSTS` | `dev-db.example.rds.amazonaws.com` | Live tests: the only DB hosts they may touch (comma-separated) |
 | `ACCEPTANCE_PARTNER_ID`, `ACCEPTANCE_USER_UUID`, `ACCEPTANCE_USER_PK`, `ACCEPTANCE_USER_ID` | | Live tests: run as this existing partner/user instead of new random ones |
@@ -286,6 +304,7 @@ must be unique. Limits (`limits:`) are safety nets set far above a normal ticket
 | `jira.statuses` | Your workflow uses other status names |
 | `chat` | `agents:` to rename Coder/Reviewer/DevOps; `default_fix_scope`; `verbosity`; `local_port` (the local server port, default 8765) |
 | `chat_llm` | §11 (the summary agent) |
+| `spec` | `source` (or `TECH_SPEC_SOURCE`), `local_dir` (or `TECH_SPEC_DIR`) |
 | `git` | `review_mode` (or `REVIEW_MODE`), `coder_author`/`deploy_author` (the commit authors), `allow_same_gitlab_identity` |
 | `polling` | How often Jira/GitLab are polled (seconds) |
 | `qa` | The placeholders used in the QA cURLs; leave |
@@ -347,12 +366,12 @@ agents:
 
 ```bash
 uv run pipeline db init                                        # creates pipeline.db
-uv run pipeline check --agents --chat-llm --spec-url "https://docs.google.com/document/d/<id>/edit"
+uv run pipeline check --agents --chat-llm
+# with TECH_SPEC_SOURCE=google-doc also: --spec-url "https://docs.google.com/document/d/<id>/edit"
 ```
 
-`check` verifies the config and `.env`, that the database is writable, Jira (login, project, the
-optional fields), GitLab (both users log in; each has at least Developer access to every repo; each
-repo's default branch exists), Google (the OAuth file; with `--spec-url` it fetches the document and
+`check` verifies the config and `.env`, that the database is writable, Jira (login, project), GitLab (the token logs in as both roles, which is fine with `allow_same_gitlab_identity`; it has at least Developer access to every repo; each
+repo's default branch exists), the tech spec (local: the `tech_spec/` folder has documents; Google: the OAuth file, and with `--spec-url` it fetches the document and
 opens the browser on the first run), the Claude/Codex CLIs and their login, and with `--agents` a
 tiny real run per provider (`--chat-llm`: one tiny run of the summary agent). Every line should be ok (a
 warn is explained in its message). Fix what is marked fail, using the message.
@@ -376,7 +395,7 @@ The dry run needs no accounts. To run the whole flow on fakes non-interactively,
    sdlc> implement DEMO-12
    ```
 
-   It asks for the spec link, checks it, and lists the repositories to tick.
+   It lists the documents in `tech_spec/` (with `google-doc`: asks for the link), checks the one you pick, and lists the repositories to tick.
 3. After 2–5 minutes the **plan** appears (also on Jira). `approve DEMO-12`.
 4. The agents code every repo, run the checks, review, fix, and open the merge requests. You are told
    when it needs you. Details of each step: [GUIDE.md](GUIDE.md).
@@ -390,8 +409,8 @@ If it works up to the merge requests appearing in GitLab, the setup is complete.
 | `Config … needs these set in .env` | The message names the variable (`JIRA_PROJECT`, `REPO_<NAME>_GITLAB_PROJECT`, …) |
 | `check`: GitLab 401/403 | Token scope or expiry; the user is not a member of that repo |
 | `check`: cannot clone / timeout | VPN is off; wrong `GITLAB_BASE_URL` or project path |
-| `check`: Google asks to log in again | The 7-day Testing-mode expiry: re-run `check --spec-url …` |
-| `Cannot implement KEY: …` | The spec link is not a readable Google Doc, or the account cannot open it |
+| `check`: Google asks to log in again | (`google-doc` only) The 7-day Testing-mode expiry: re-run `check --spec-url …` |
+| `Cannot implement KEY: …` | `local`: the `tech_spec/` folder is missing or empty, or the number / name is not in the list. `google-doc`: the link is not a readable Google Doc, or the account cannot open it |
 | An agent says it is not logged in | Run `claude` / `codex login` as the **same OS user** that runs the pipeline; for headless Claude set `CLAUDE_CODE_OAUTH_TOKEN` |
 | `provider_limit` | Your plan's usage limit; the fallback provider takes over, or wait |
 | Live tests: "not an allowed database host" | Put the dev DB host in `ACCEPTANCE_ALLOWED_DB_HOSTS` (and never a production host) |

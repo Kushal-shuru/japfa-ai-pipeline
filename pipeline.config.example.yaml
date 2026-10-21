@@ -134,7 +134,11 @@ git:
   coder_author: "AI Coder <ai-coder@example.com>"
   deploy_author: "AI Deploy <ai-deploy@example.com>"
   review_mode: local                  # local | gitlab (env REVIEW_MODE wins): review before any merge request exists (D207)
-  allow_same_gitlab_identity: false   # one GitLab account as coder and reviewer (D194); needs "approve own MR" allowed
+  allow_same_gitlab_identity: true    # one GitLab account (your own token) as coder and reviewer (D194); needs "approve own MR" allowed; false = two separate accounts
+
+spec:                                 # where `implement` gets the tech spec (D213)
+  source: local                       # local | google-doc (env TECH_SPEC_SOURCE wins): local = pick a file from local_dir
+  local_dir: tech_spec                # env TECH_SPEC_DIR; relative to the pipeline repository
 
 demo:                               # `pipeline demo-reset` without arguments resets these (P8)
   tickets: []                       # e.g. [DEMO-8]

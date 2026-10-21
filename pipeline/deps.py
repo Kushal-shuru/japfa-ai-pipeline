@@ -145,3 +145,10 @@ def make_deps(
         runner=runner,
         chat_llm=_chat_llm(config, secrets, store, runner, home),
     )
+
+
+def _spec(google: Any, config: Any) -> Any:
+    """Google links go to `google`; `file://` links (`spec.source: local`) to tech_spec/."""
+    from pipeline.integrations.local_spec import LocalSpec, SpecRouter, spec_dir
+
+    return SpecRouter(google, LocalSpec(spec_dir(config.spec.local_dir)))

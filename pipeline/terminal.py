@@ -261,11 +261,11 @@ class Terminal:
 
     def intake(self, text: str, words: list[str], prompt: Callable[[str], str],
                choose: Choose) -> str | None:
-        """`implement KEY` without `--spec` / `--repos` (D202): ask for the Google Doc link, check
-        it, then let the person tick the repositories in scope (the config's `repos`). Returns
-        the command to send, with both added; None = the ticket is not started (the reason is
-        printed)."""
-        from pipeline.intake import check_spec, repo_options
+        """`implement KEY` without `--spec` / `--repos` (D202): ask for the Google Doc link (with
+        `spec.source: local`: list the tech_spec folder and ask which document), check it, then
+        let the person tick the repositories in scope (the config's `repos`). Returns the command
+        to send, with both added; None = the ticket is not started (the reason is printed)."""
+        from pipeline.intake import check_spec_input, local_options, repo_options, spec_is_local
 
         flags = [w.lower().split("=")[0] for w in words]
         if "--spec" in flags or "--repos" in flags:
@@ -273,17 +273,32 @@ class Terminal:
         key = next((w.upper() for w in words[1:] if KEY_RE.match(w)), None)
         if key is None or self.backend.busy(key):
             return text  # the command explains (no ticket named / already running)
+        prefix = self.backend.prefix
+        if not key.startswith(f"{prefix.upper()}-"):  # before asking for the spec and repos
+            return text  # the command explains: "<key> is not a <prefix> ticket"
+        config = self.backend.deps.config
+        local = spec_is_local(config)
+        if local:  # spec.source: local → pick a document of the tech_spec folder
+            options, why = local_options(config)
+            if not options:
+                print(f"Cannot implement {key}: {why}.")
+                return None
+            print("Tech specs available:")
+            for n, (name, _link) in enumerate(options, 1):
+                print(f"  {n}. {name}")
         try:
-            link = prompt("Please paste the tech spec link (Google Doc): ").strip()
+            link = prompt("Tech spec number (or file name): " if local
+                          else "Please paste the tech spec link (Google Doc): ").strip()
         except (KeyboardInterrupt, EOFError):
             self.console.print("Cancelled. Nothing started.")
             return None
-        with self.console.status("Checking the link…"):
-            spec, why = check_spec(link, self.backend.deps.spec)
+        with self.console.status("Checking the tech spec…" if local else "Checking the link…"):
+            spec, why = check_spec_input(link, config, self.backend.deps.spec)
         if spec is None:
             print(f"Cannot implement {key}: {why}.")
             return None
-        print("Link OK. Which repositories are in scope for this ticket?")
+        print("Tech spec OK." if local else "Link OK.", "Which repositories are in scope for "
+              "this ticket?")  # fmt: skip
         names = choose(repo_options(self.backend.deps.config))
         if not names:
             print(f"Cannot implement {key}: no repository was chosen.")

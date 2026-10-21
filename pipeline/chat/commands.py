@@ -109,7 +109,8 @@ USAGE: tuple[tuple[str, tuple[tuple[str, str], ...]], ...] = (
     ("Start", (
         ("implement KEY [--spec LINK --repos a,b] [--provider claude|codex] [--slot Coder-B] "
          "[testing=true]",
-         "start a ticket; in the terminal it asks for the tech spec link and the repositories "
+         "start a ticket; in the terminal it asks for the tech spec (a Google Doc link, or a "
+         "document of the tech_spec folder) and the repositories "
          "(elsewhere give --spec and --repos); testing=true adds the live acceptance tests "
          "(off by default)"),
     )),
@@ -768,10 +769,11 @@ class CommandBus:
 
     def _take_intake(self, cmd: Command) -> str | None:
         """The tech spec link and the repositories (D202): what the person gave (checked: the
-        link must be a Google Doc the pipeline can read, the repos must be configured ones)
+        link must be a Google Doc the pipeline can read, or with `spec.source: local` a
+        document of the tech_spec folder, the repos must be configured ones)
         is kept as the ticket's `intake` note; else an earlier answer, or what the Jira ticket
         carries, is used. None = fine; else why the ticket can't start."""
-        from pipeline.intake import check_spec, intake_of, parse_repos
+        from pipeline.intake import check_spec_input, intake_of, parse_repos
 
         key = cmd.key
         assert key is not None
@@ -785,7 +787,7 @@ class CommandBus:
             return None if self._jira_has_intake(key) else self._ask_for_intake(key)
         spec_url = saved.get("spec_url")
         if link is not None:
-            spec_url, why = check_spec(link, self.deps.spec)
+            spec_url, why = check_spec_input(link, config, self.deps.spec)
             if spec_url is None:
                 return f"I can't start {key}: {why}."
         names = saved.get("repos")
@@ -818,12 +820,16 @@ class CommandBus:
         return bool(repos and spec)
 
     def _ask_for_intake(self, key: str) -> str:
-        from pipeline.intake import repo_options
+        from pipeline.intake import repo_options, spec_is_local
 
         names = ", ".join(n for n, _ in repo_options(self.deps.config))
-        return (f"I need the tech spec link and the repositories for {key}. In the terminal, "
+        what = ("the tech spec (a document of the tech_spec folder, by number or file name)"
+                if spec_is_local(self.deps.config) else "the tech spec link")
+        spec = ("<number or file name>" if spec_is_local(self.deps.config)
+                else "<Google Doc link>")  # fmt: skip
+        return (f"I need {what} and the repositories for {key}. In the terminal, "
                 f"`implement {key}` asks for them; anywhere else: `implement {key} --spec "
-                f"<Google Doc link> --repos a,b`. Repositories: {names}.")  # fmt: skip
+                f"{spec} --repos a,b`. Repositories: {names}.")  # fmt: skip
 
     def _stage_of(self, key: str) -> str | None:
         return (self.deps.store.get_ticket(key) or {}).get("stage")

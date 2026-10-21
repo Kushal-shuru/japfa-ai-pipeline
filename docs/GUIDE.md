@@ -9,7 +9,7 @@ merged, QA-tested code with the pipeline: every command, and every step in order
 **The short version**
 
 1. You write a normal Jira ticket (numbered acceptance criteria).
-2. In the terminal: `implement DEMO-12`. Give the spec link, tick the repositories.
+2. In the terminal: `implement DEMO-12`. Pick the tech spec (a file in `tech_spec/`, or a Google Doc link), tick the repositories.
 3. You read the plan and `approve DEMO-12`.
 4. The AI codes every repository, checks it, reviews it itself, fixes what the review finds, and only
    then opens **one merge request per repository**, with a deployment note.
@@ -17,6 +17,24 @@ merged, QA-tested code with the pipeline: every command, and every step in order
    files each bug as a Jira ticket; you give those to `fix`.
 
 The AI never merges, never pushes to a default branch, never runs migrations and never changes CI or secrets.
+
+**Starting over (during or after testing).** To wipe everything a ticket left behind and run it
+again from scratch, type this in the terminal:
+
+```
+sdlc> reset DEMO-12 --full
+```
+
+It asks `[y/N]`, then removes the ticket's traces:
+
+- its **merge requests** are closed and its `ai/DEMO-12-…` **branches** are deleted on GitLab and on this machine (the working folders too);
+- on **Jira**, the comments and deployment-note attachments the pipeline posted are deleted and the ticket goes back to **To Do** (your own comments and any bug tickets QA filed are not touched);
+- locally, the ticket's checkpoints, commands, saved answers (tech spec and repositories) and history are forgotten, so `implement DEMO-12` starts clean.
+
+Good to know: `reset DEMO-12` without `--full` only forgets the ticket on this machine (GitLab and
+Jira stay as they are). It is refused while a step is running: `stop DEMO-12` first. Code that was
+already **merged** into a default branch stays there, and the pipeline never touches a default
+branch. The tech spec file in `tech_spec/` is not deleted.
 
 ---
 
@@ -46,7 +64,7 @@ The AI never merges, never pushes to a default branch, never runs migrations and
 | **Permission ID** only if one applies (e.g. `securityID 123`) | "As an admin" alone means any logged-in user; the AI never invents permission ids |
 | Use the same names for routes, fields and error codes as the tech spec | The planner finds the right section of the spec by those names |
 
-**Not on the ticket:** the tech-spec link and the repositories. You give them when you start the
+**Not on the ticket:** the tech spec and the repositories. You give them when you start the
 ticket (§5 step 1). Good size: one endpoint (or one change to one) through the service and the
 gateway. Split bigger work into several tickets.
 
@@ -127,15 +145,18 @@ Typical times are from real runs and vary by about ±50 %.
 
 ```
 sdlc> implement DEMO-12
-Please paste the tech spec link (Google Doc): https://docs.google.com/document/d/…/edit
-Link OK. Which repositories are in scope for this ticket?
+Tech specs available:
+  1. incentive-targets-spec.md
+  2. closio-dashboard-spec.md
+Tech spec number (or file name): 1
+Tech spec OK. Which repositories are in scope for this ticket?
   1. nodejs-ws2targetsalesincentive
   2. nodejs-ws1closio
 Repositories in scope (numbers or names, comma-separated, or all): 1,2
 ```
 
-- The link must be a Google Doc the pipeline's Google login can read. Otherwise: `Cannot implement DEMO-12: <reason>` and nothing starts.
-- Jira goes to **In Dev**. Add `testing=true` to include the live acceptance tests (§5 step 4).
+- By default (`TECH_SPEC_SOURCE=local`) it lists the documents in the pipeline's `tech_spec/` folder, as above; type the number or the file name. With `TECH_SPEC_SOURCE=google-doc` it asks `Please paste the tech spec link (Google Doc):` instead, and the link must be a Google Doc the pipeline's Google login can read. Otherwise: `Cannot implement DEMO-12: <reason>` and nothing starts.
+- Jira goes to **In Development**. Add `testing=true` to include the live acceptance tests (§5 step 4).
 - Rehearsing? `uv run pipeline cli --dry-run` does the same on fakes.
 
 ### Step 2. Read and approve the plan (2–5 minutes)

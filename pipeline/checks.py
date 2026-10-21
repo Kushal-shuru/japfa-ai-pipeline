@@ -118,7 +118,20 @@ def run_checks(deps: Deps, spec_url: str | None = None) -> list[CheckResult]:
         add(_run("GitLab", f"{repo.name}: branch {repo.default_branch}", branch))
 
     # ---------- Google ----------
+    local_specs = cfg.spec.source == "local"
+    if local_specs:
+        def folder_check() -> tuple[Status, str]:
+            from pipeline.intake import local_options
+
+            options, why = local_options(cfg)
+            return ("ok", f"{len(options)} document(s) in the tech spec folder") if options \
+                else ("warn", why)  # fmt: skip
+
+        add(_run("Tech spec", "Local folder", folder_check))
+
     def google_check() -> tuple[Status, str]:
+        if local_specs and not spec_url:
+            return "skip", "tech specs are local (spec.source: local); Google is not used"
         if not secrets.google_oauth_client_path or not secrets.google_oauth_client_path.exists():
             return "fail", f"OAuth client file missing: {secrets.google_oauth_client_path}"
         if not spec_url:

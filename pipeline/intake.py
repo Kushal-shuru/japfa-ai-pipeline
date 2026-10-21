@@ -8,6 +8,9 @@ tickets that carry them, but nothing needs them.
 
 - `check_spec`: the link must be a Google **Doc** (docs.google.com/document/d/<id>) the pipeline
   can read; otherwise the ticket is not started and the reason is told.
+- `spec.source: local` (env TECH_SPEC_SOURCE): the spec is a document in the pipeline's
+  `tech_spec/` folder instead; `local_options` lists it and `check_spec_input` takes the number
+  or file name the person types. The ticket then keeps a `file://` link in `spec_url`.
 - `repo_options`: the pick list is the config's `repos` (names from `pipeline.config.yaml`).
 """
 
@@ -19,6 +22,13 @@ from urllib.parse import urlparse
 
 from pipeline.config import PipelineConfig
 from pipeline.integrations.base import IntegrationError, SpecPort
+from pipeline.integrations.local_spec import (
+    SPEC_SUFFIXES,
+    is_local_url,
+    list_specs,
+    path_of,
+    spec_dir,
+)
 
 INTAKE_NOTE = "intake"  # ticket note: {"spec_url", "repos", "by"}
 _DOC_PATH = re.compile(r"^/document/(?:u/\d+/)?d/([A-Za-z0-9_-]{10,})(?:/|$)")
@@ -71,6 +81,63 @@ def check_spec(text: str, spec: SpecPort) -> tuple[str | None, str]:
     if not (md or "").strip():
         return None, "the document is empty"
     return link, ""
+
+
+def spec_is_local(config: PipelineConfig) -> bool:
+    return config.spec.source == "local"
+
+
+def local_options(config: PipelineConfig) -> tuple[list[tuple[str, str]], str]:
+    """([(file name, link)], "") for the documents in the tech_spec folder; ([], why) when the
+    folder is missing or has none."""
+    directory = spec_dir(config.spec.local_dir)
+    if not directory.is_dir():
+        return [], (f"the tech spec folder {directory} doesn't exist; create it and put the "
+                    f"document there ({', '.join(SPEC_SUFFIXES)})")  # fmt: skip
+    files = list_specs(directory)
+    if not files:
+        return [], (f"there is no document in the tech spec folder {directory}; put the tech "
+                    f"spec there ({', '.join(SPEC_SUFFIXES)})")  # fmt: skip
+    return [(p.name, p.as_uri()) for p in files], ""
+
+
+def check_local_spec(text: str, config: PipelineConfig, spec: SpecPort) -> tuple[str | None, str]:
+    """(the `file://` link, "") for a document of the tech_spec folder named by its list number
+    or its file name (a link this pipeline made earlier works too); else (None, why)."""
+    options, why = local_options(config)
+    if not options:
+        return None, why
+    answer = (text or "").strip().strip("\"'")
+    if not answer:
+        return None, "no document was chosen"
+    link = None
+    if answer.isdigit():
+        if 1 <= int(answer) <= len(options):
+            link = options[int(answer) - 1][1]
+    elif is_local_url(answer):
+        link = next((u for _, u in options if path_of(u) == path_of(answer)), None)
+    else:
+        low = answer.lower()
+        link = next((u for n, u in options
+                     if n.lower() == low or n.rsplit(".", 1)[0].lower() == low), None)
+    if link is None:
+        names = ", ".join(f"{i}. {n}" for i, (n, _) in enumerate(options, 1))
+        return None, f"`{answer}` is not one of the documents in the folder ({names})"
+    try:
+        md, _ = spec.fetch(link)
+    except Exception as err:  # noqa: BLE001
+        return None, f"the document could not be read ({err})"
+    if not (md or "").strip():
+        return None, "the document is empty"
+    return link, ""
+
+
+def check_spec_input(text: str, config: PipelineConfig,
+                     spec: SpecPort) -> tuple[str | None, str]:
+    """What the person gave for the spec, checked the way `spec.source` says."""
+    if spec_is_local(config):
+        return check_local_spec(text, config, spec)
+    return check_spec(text, spec)
 
 
 def _fetch_reason(error: str) -> str:

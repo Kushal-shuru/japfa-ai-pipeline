@@ -12,7 +12,7 @@ People keep control of which tickets the AI takes, the plan, which review findin
 - **Orchestrator:** Python + LangGraph, one checkpointed thread per ticket, gates that wait for people.
 - **Agents:** Claude Code (Agent SDK) or Codex, per slot. They plan, code, review and write the deployment note and the QA test notes.
 - **Summary agent:** a tiny Claude / Codex run that writes the merge request description; it never decides anything.
-- **Integrations:** Jira (statuses, audit trail, QA bugs), GitLab (coder and reviewer identities), Google Docs (specs).
+- **Integrations:** Jira (statuses, audit trail, QA bugs), GitLab (coder and reviewer identities), tech specs (the `tech_spec/` folder, or Google Docs).
 
 | Doc | For |
 |---|---|
@@ -33,7 +33,7 @@ uv sync
 cp .env.example .env                                  # secrets and per-environment values (SETUP §8)
 cp pipeline.config.example.yaml pipeline.config.yaml  # repos, agents, gates, live tests (SETUP §9)
 uv run pipeline db init
-uv run pipeline check --agents --chat-llm --spec-url <a spec Google Doc>
+uv run pipeline check --agents --chat-llm   # google-doc specs: add --spec-url <a spec Google Doc>
 uv run pipeline warm                                  # base clones + node_modules cache
 ```
 
