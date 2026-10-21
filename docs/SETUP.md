@@ -386,41 +386,7 @@ The dry run needs no accounts. To run the whole flow on fakes non-interactively,
 
 If it works up to the merge requests appearing in GitLab, the setup is complete.
 
-## 14. Running it for a team
-
-**One server.** A Linux or macOS machine with VPN access to GitLab and Jira, Python/uv, Node, git,
-Redis (for live tests), the Claude Code CLI and optionally Codex. Repeat §1–§13 on it, then run
-the pipeline as a service so tickets keep working when nobody is logged in:
-
-```ini
-[Unit]
-Description=AI SDLC pipeline
-After=network-online.target
-
-[Service]
-User=pipeline
-WorkingDirectory=/opt/ai-sdlc-pipeline
-EnvironmentFile=/etc/ai-pipeline/env
-ExecStart=/usr/local/bin/uv run pipeline serve
-Restart=on-failure
-KillSignal=SIGINT
-TimeoutStopSec=30
-
-[Install]
-WantedBy=multi-user.target
-```
-
-People then connect with `uv run pipeline cli` on that machine (over SSH): it attaches to the
-running server.
-
-- **Secrets** can come from a secret manager that writes the `EnvironmentFile` (the pipeline reads the process environment first; the `.env` file is not required).
-- **A restart** drops steps that had not started, and resumes each cut-off step once with a message; a step cut off twice goes to "needs a person". Deploy while no agent runs (`pipeline status`), or `pipeline pause` first.
-- **Backups:** `sqlite3 $PIPELINE_HOME/pipeline.db ".backup '/backups/pipeline-$(date +%F).db'"` daily, plus `$PIPELINE_HOME/runs/`. SQLite is enough for one server.
-- **Disk:** `pipeline gc` removes finished tickets' worktrees; `pipeline gc --cache` also clears the `node_modules` cache.
-- **Adding a repository:** prepare it (§7), give both bot users access, add its `repos[]` entry (§9.1) and its two `REPO_<NAME>_…` variables (§8), then `uv run pipeline warm <name>` and `uv run pipeline check`. Run the first ticket with the gates manual.
-- **More parallel tickets:** add slots to `agent_pool` (about three coder slots and four reviewer slots handle three tickets at once).
-
-## 15. When setup goes wrong
+## 14. When setup goes wrong
 
 | Symptom | Fix |
 |---|---|
