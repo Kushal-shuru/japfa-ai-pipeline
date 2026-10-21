@@ -112,8 +112,8 @@ open_mrs  (rebase onto the latest default branch first, D125; one MR per repo, c
                     ▼         DevOps works before the merges, D124)  [gate re_review] → review
               post_qa_notes (RFT: QA notes; after a QA round "Resolved: 1, 2" on Jira)
                     ▼
-              wait_qa ⏸ ──(Jira QA Passed)→ qa_done → END
-                    │ QA files each bug as its own Jira ticket + QA Failed
+              wait_qa ⏸ ──(Jira QA - Passed)→ qa_done → END
+                    │ QA files each bug as its own Jira ticket + moves it to Blocked
                     ▼
               [gate qa_fix] `fix KEY DEMO-13 DEMO-14` (the bug tickets) → qa_fix (new branches …-qa<n>)
                     → plan (qa_fix) → [gate plan_approval] → code loop → open_mrs
@@ -128,13 +128,13 @@ open_mrs  (rebase onto the latest default branch first, D125; one MR per repo, c
 
 | Status | Set by | Next |
 |---|---|---|
-| To Do | Human | In Dev |
-| In Dev | Orchestrator (load_context; a QA round's `fix KEY DEMO-13 …`) — the whole way from the plan to the last merge: plan approval, coding, MRs, review, fixes, deployment note, merge wait (D127) | RFT, Blocked |
+| To Do | Human | In Development |
+| In Development | Orchestrator (load_context; a QA round's `fix KEY DEMO-13 …`) — the whole way from the plan to the last merge: plan approval, coding, MRs, review, fixes, deployment note, merge wait (D127) | RFT, Blocked |
 | Blocked | Orchestrator — only when it needs a person to unblock it (a failed step, questions, a limit reached, a stop; P10: the ticket's migration isn't on the dev DB yet); `retry` / `guide` put the previous status back | the previous status |
-| RFT | Orchestrator (all MRs merged; DevOps did its part before the merges, D124) | Testing, QA Failed, QA Passed |
-| Testing | **Human (QA)** when they start testing | QA Failed, QA Passed |
-| QA Failed | **Human (QA)** after filing each bug as its own Jira ticket (orchestrator too, for bugs typed in the terminal) | In Dev (`fix KEY DEMO-13 …`) |
-| QA Passed | **Human (QA)** | — |
+| Ready for Test | Orchestrator (all MRs merged; DevOps did its part before the merges, D124) | Testing, Blocked, QA - Passed |
+| Testing | **Human (QA)** when they start testing | Blocked, QA - Passed |
+| Blocked (QA failed) | **Human (QA)** after filing each bug as its own Jira ticket (orchestrator too, for bugs typed in the terminal): the board has no QA Failed status | In Development (`fix KEY DEMO-13 …`) |
+| QA - Passed | **Human (QA)** | — |
 
 Status names come from config. Jira keeps the audit trail even though the conversation happens in the terminal: with `chat.verbosity: minimal` (the default, P9) one comment per **plan version** (never edited, so earlier plans stay readable), one **delivery summary** comment per ticket edited in place (status, current plan, merge requests, deployment note, every decision people made), plus the QA comments; with `normal`, a comment for every decision and step.
 

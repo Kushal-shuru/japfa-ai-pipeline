@@ -61,7 +61,7 @@ the repo they work in.
 
 **QA loop**
 - At RFT the Coder writes copy-paste **test notes** (cURLs with placeholders) on Jira.
-- QA files **each bug as its own Jira ticket**; `fix KEY DEMO-13 DEMO-14` turns them into numbered bugs and starts a QA round (new branch, plan, code, review, merge request, deployment note) until **QA Passed**.
+- QA files **each bug as its own Jira ticket**; `fix KEY DEMO-13 DEMO-14` turns them into numbered bugs and starts a QA round (new branch, plan, code, review, merge request, deployment note) until **QA - Passed**.
 
 **Control and operations**
 - Gates (manual or automatic) at plan approval, review, fix, re-review, deployment note, QA fix.

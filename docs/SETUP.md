@@ -128,7 +128,7 @@ about $3, review about $1.5, deployment note under $0.5: about $6 for one review
 
 Cloud, any plan. A project (key used below: `DEMO`).
 
-- [ ] **Statuses** in the project's workflow: `To Do`, `In Dev`, `Blocked`, `RFT`, `Testing`, `QA Failed`, `QA Passed`. The pipeline moves tickets between them, so allow those transitions (for team-managed projects: allow any status to move to any other). Different names? Set them in `jira.statuses` in the config.
+- [ ] **Statuses** in the project's workflow: `To Do`, `In Development`, `Blocked`, `Ready for Test`, `Testing`, `QA - Passed` (QA failures use `Blocked`). The pipeline moves tickets between them, so allow those transitions (for team-managed projects: allow any status to move to any other). Different names? Set them in `jira.statuses` in the config.
 - [ ] **A user for the pipeline** (a bot account is best: the audit comments appear under its name) and its **API token**: https://id.atlassian.com/manage-profile/security/api-tokens
   - `JIRA_BASE_URL=https://<your-site>.atlassian.net`, `JIRA_EMAIL=<the account's email>`, `JIRA_API_TOKEN=<token>` in `.env`
   - The account must be able to browse the project, comment, edit issues, transition and attach files.

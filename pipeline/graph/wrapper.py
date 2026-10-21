@@ -28,7 +28,7 @@ MOVED_BY_HUMAN = "moved_by_human"
 
 # Jira status (config key) a node expects to find; None = no check. D127: the whole way from the
 # plan to the last merge is In Dev (plan, code, review, fixes, deployment note, merge wait); the
-# testing steps don't check (QA moves it between RFT, Testing and QA Failed).
+# testing steps don't check (QA moves it between Ready for Test, Testing and Blocked).
 DEV_NODES = (
     "plan", "plan_gate", "plan_gate_wait", "env_check", "code_next_repo", "verify", "replan",
     "acceptance", "open_mrs",

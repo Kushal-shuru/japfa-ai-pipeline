@@ -395,7 +395,7 @@ def make_dry_run(key: str, config: PipelineConfig, secrets: Secrets, root: Path,
 
 def run_dry(services: Services, key: str) -> dict[str, Any]:
     """implement → approve the plan → review → fix all → review again → deployment note →
-    merge one MR at a time → RFT → QA writes two bugs on Jira + QA Failed → `fix all` → the same
+    merge one MR at a time → RFT → QA writes two bugs on Jira + Blocked → `fix all` → the same
     loop (QA round 1) → RFT → QA Passed → finished, or until it needs a human."""
     from pipeline.chat.commands import parse_command
 
@@ -422,7 +422,7 @@ def run_dry(services: Services, key: str) -> dict[str, Any]:
             if not info.values.get("qa_round"):
                 for bug_key, (summary, text) in zip(bug_keys, DRY_RUN_BUGS, strict=True):
                     jira.add_issue(bug_key, summary, text, status="To Do")
-                jira.transition(key, statuses.qa_failed)
+                jira.transition(key, statuses.blocked)
                 say(f"fix {key} {' '.join(bug_keys)}")
             else:
                 jira.transition(key, statuses.qa_passed)

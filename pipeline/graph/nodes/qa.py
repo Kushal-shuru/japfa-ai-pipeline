@@ -1,4 +1,4 @@
-"""Testing (Phase 7, D126): `post_qa_notes` (RFT) → `wait_qa` ⟲ → `qa_done` (QA Passed) or
+"""Testing (Phase 7, D126): `post_qa_notes` (RFT) → `wait_qa` ⟲ → `qa_done` (QA - Passed) or
 `qa_fix` → the normal loop (plan approval, coding, MRs, review, merge) → `post_qa_notes` again.
 
 - `post_qa_notes`: first RFT → the QA notes agent writes copy-paste test cases (Jira) and the
@@ -12,7 +12,7 @@
   - `bug KEY: …` typed in the terminal: recorded the same way (numbered, on Jira);
   - `fix 1 2` / `fix all` (no tickets): the bugs already recorded and still open (the rest stay
     open), a number that isn't an open bug is refused in words and the ticket keeps waiting;
-  - `qa_passed` (poller: a person moved Jira to QA Passed) → `qa_done`; `stop` → Needs Human
+  - `qa_passed` (poller: a person moved Jira to QA - Passed) → `qa_done`; `stop` → Needs Human
     (Jira Blocked).
 - `qa_fix`: `qa_round += 1` (over `max_qa_rounds` → Needs Human), Jira In Dev, a fresh worktree
   per repo on `ai/<KEY>-…-qa<n>` from the latest default branch, clean per-repo state; then
@@ -44,7 +44,7 @@ QA_ACTIONS = ("fix", "fix_bugs", "bug", "qa_passed", "stop")
 EPOCH = datetime(1970, 1, 1, tzinfo=UTC)
 HOW_TO_REPORT = (
     "Found problems? File each bug as its own Jira ticket (the bug in the description), move this "
-    "ticket to QA Failed, then tell me the bug tickets here, for example `fix {key} DEMO-13 "
+    "ticket to Blocked, then tell me the bug tickets here, for example `fix {key} DEMO-13 "
     "DEMO-14`."
 )
 
@@ -134,10 +134,10 @@ def _announce(state: TicketState, deps: Any, bugs: list[dict], added: list[dict]
     statuses = deps.config.jira.statuses
     try:
         if statuses.in_testing(deps.jira.current_status(key)):  # RFT or Testing
-            deps.jira.transition(key, statuses.qa_failed)
-            deps.store.upsert_ticket(key, jira_status=statuses.qa_failed)
+            deps.jira.transition(key, statuses.blocked)  # the board has no QA Failed
+            deps.store.upsert_ticket(key, jira_status=statuses.blocked)
     except IntegrationError as err:
-        get_logger(ticket=key, node="wait_qa").warning("qa_failed_transition", error=str(err))
+        get_logger(ticket=key, node="wait_qa").warning("blocked_transition", error=str(err))
     text = f"QA found {plural(len(ns), 'bug')} on {key} ({B.numbers_words(ns)}); they're on Jira."
     if gate_mode("qa_fix", deps) == "auto":
         text += (f" I'll start fixing {'it' if len(open_ns) == 1 else 'them'} in "

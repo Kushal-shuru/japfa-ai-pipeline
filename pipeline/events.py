@@ -192,7 +192,7 @@ class GitLabMergePoller:
 class QaPoller:
     """Tickets in testing (`qa` / `qa_fix`, D126), from Jira:
 
-    - status **QA Passed** (people move it) → resume `qa_passed`: the ticket closes;
+    - status **QA - Passed** (people move it) → resume `qa_passed`: the ticket closes;
     - `gates.qa_fix: auto` and bugs open with no new one for `QUIET_MINUTES` → `fix all`.
 
     A busy ticket or a failed Jira read is simply tried again at the next poll."""

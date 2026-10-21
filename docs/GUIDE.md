@@ -33,7 +33,7 @@ The AI never merges, never pushes to a default branch, never runs migrations and
 | Env vars, migrations, infrastructure **before** the merge | DevOps (person) | from the note |
 | Merge, in the order on the card | Developer | GitLab |
 | Test notes with cURLs | Coder (AI) | Jira |
-| Testing; QA Failed / QA Passed; bug tickets | QA | Jira |
+| Testing; Blocked (QA failed) / QA - Passed; bug tickets | QA | Jira |
 | Choose which bugs to fix | Developer | Terminal |
 
 ## 2. Writing a ticket the AI can take
@@ -211,15 +211,15 @@ is kept, and the next review looks at it. Want a change before merging? `change 
 
 ### Step 9. Ready for testing
 
-All merged → Jira **RFT** and a comment with **test notes** for QA: test cases with cURL commands
+All merged → Jira **Ready for Test** and a comment with **test notes** for QA: test cases with cURL commands
 using `{{QA_BASE_URL}}` and `{{QA_TOKEN}}` placeholders.
 
 ### Step 10. QA
 
 1. Replace the placeholders with your environment's values and test. Moving the ticket to **Testing** is optional.
-2. **Each bug is its own Jira ticket**, with the bug in its description (what you did, what you expected, what happened). Then move the *main* ticket to **QA Failed**.
+2. **Each bug is its own Jira ticket**, with the bug in its description (what you did, what you expected, what happened). Then move the *main* ticket to **Blocked** (the board has no QA Failed status).
 3. Tell the developer the bug keys (e.g. `DEMO-13 DEMO-14`).
-4. All good → move the main ticket to **QA Passed**; the pipeline says thanks and cleans up.
+4. All good → move the main ticket to **QA - Passed**; the pipeline says thanks and cleans up.
 
 ### Step 11. Fix the bugs
 
@@ -229,10 +229,10 @@ Bug ticket number(s) for DEMO-12, for example DEMO-13 DEMO-14 (empty = the bugs 
 ```
 
 or in one line `fix DEMO-12 DEMO-13 DEMO-14`. The pipeline reads each bug ticket's summary and
-description, numbers them (#1, #2 … on the main ticket's Jira), moves Jira to **In Dev**, and runs
+description, numbers them (#1, #2 … on the main ticket's Jira), moves Jira to **In Development**, and runs
 the same loop on a new branch (`…-qa1`): a plan for the fix (`approve DEMO-12`), code, local
 review, merge requests, deployment note, merge, RFT with "Resolved: #1, #2" on Jira. Then QA
-tests again: back to Step 10, until **QA Passed**.
+tests again: back to Step 10, until **QA - Passed**.
 
 ## 6. What the cards mean
 
@@ -261,12 +261,12 @@ decision people made), the deployment note as an attachment, and the QA comments
 | Status | Set by | Means |
 |---|---|---|
 | To Do | People | Not started |
-| In Dev | Pipeline | From the plan to the last merge (plan, coding, review, fixes, deployment note, merge wait) |
+| In Development | Pipeline | From the plan to the last merge (plan, coding, review, fixes, deployment note, merge wait) |
 | Blocked | Pipeline | It needs a person (question, failed step, limit, stop, a migration to apply). `retry` / `guide` put the previous status back |
-| RFT | Pipeline | All merge requests merged; ready for testing |
+| Ready for Test | Pipeline | All merge requests merged; ready for testing |
 | Testing | QA | QA is testing |
-| QA Failed | QA | QA filed bug tickets |
-| QA Passed | QA | Done |
+| Blocked | QA / Pipeline | QA filed bug tickets (or the pipeline needs a person) |
+| QA - Passed | QA | Done |
 
 If you move a ticket to another status while the pipeline works on it, it stops at its next step
 and says so. Move it back and `retry DEMO-12`, or `stop` it.

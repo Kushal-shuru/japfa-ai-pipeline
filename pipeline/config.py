@@ -22,7 +22,7 @@ RepoRoleName = Literal["gateway", "service", "frontend"]
 ROLE_RANK: dict[str, int] = {"service": 0, "gateway": 1, "frontend": 2}
 POOLS = ("coder", "reviewer", "deploy")
 AGENTS = ("coder", "reviewer", "devops")  # chat.agents keys (D111, D113)
-GATES = ("start", "plan_approval", "review", "fix", "re_review", "deploy_doc", "qa_fix")
+GATES = ("plan_approval", "review", "fix", "re_review", "deploy_doc", "qa_fix")
 # Agent roles → the `agents.roles` entry that configures them (CLAUDE.md §3.7).
 AGENT_ROLES: dict[str, str | None] = {
     "planner": "planner",
@@ -38,6 +38,7 @@ AGENT_ROLES: dict[str, str | None] = {
     "qa_notes": "qa_notes",
     "tester": "tester",  # writes the live acceptance cases (P10)
     "summary": "summary",  # short plain-language texts (merge request descriptions), D209
+    "criteria": "criteria",  # copies the acceptance criteria out of the ticket description (D218)
 }
 API_KEY_ENV: dict[str, str] = {"claude": "anthropic_api_key", "codex": "openai_api_key"}
 HOME_SUBDIRS = ("repos", "workspaces", "specs", "runs", "secrets", "logs")
@@ -94,21 +95,21 @@ class _Strict(BaseModel):
 
 
 # statuses of the earlier, longer workflow (D127): accepted in old configs and ignored
-LEGACY_STATUSES = ("code_review", "changes_requested", "ready_to_merge", "awaiting_devops")
+LEGACY_STATUSES = ("code_review", "changes_requested", "ready_to_merge", "awaiting_devops",
+                   "qa_failed")  # qa_failed: the board has no such status; QA moves it to Blocked
 
 
 class JiraStatuses(_Strict):
     """The ticket's Jira workflow (D127): In Dev from the start until every MR is merged (plan,
     code, review, fixes, merge wait), Blocked only while it needs a person to unblock it, RFT
-    once merged; Testing, QA Failed and QA Passed are set by QA."""
+    once merged; Testing and QA - Passed are set by QA; QA moves a failed ticket to Blocked."""
 
     todo: str = "To Do"
-    in_dev: str = "In Dev"
+    in_dev: str = "In Development"
     blocked: str = "Blocked"
-    rft: str = "RFT"
+    rft: str = "Ready for Test"
     testing: str = "Testing"
-    qa_failed: str = "QA Failed"
-    qa_passed: str = "QA Passed"
+    qa_passed: str = "QA - Passed"
 
     @model_validator(mode="before")
     @classmethod
@@ -127,9 +128,8 @@ class JiraStatuses(_Strict):
 
 class JiraConfig(_Strict):
     project: str
-    pickup_jql: str = ""
     # optional since D202: `implement` asks for the tech spec link and the repositories; tickets
-    # that still carry them in these Jira custom fields (and Jira pickup) can use them
+    # that still carry them in these Jira custom fields can use them
     spec_field: str = ""
     repos_field: str = ""
     statuses: JiraStatuses = JiraStatuses()
@@ -279,23 +279,28 @@ class LimitsConfig(_Strict):
 
 
 class ChatConfig(_Strict):
-    bot_name: str = "SDLC Bot"
     default_fix_scope: str = "major+"
     # the notification policy (P9): minimal = plan, one merge-request card, decisions and
     # blockers in the thread; one Jira summary comment edited in place. normal = every step
     # (debugging)
     verbosity: Literal["minimal", "normal"] = "minimal"
     reminder_hours: float = 0  # >0: a manual gate waiting this long → one reminder (P8 1.5)
-    # one line in the main channel for events people outside the ticket care about (P8 2.1)
-    channel_summaries: bool = True
-    digest_time: str | None = Field(default=None, pattern=r"^([01]?\d|2[0-3]):[0-5]\d$")
-    # ^ "09:00" (server local time): a daily digest in the main channel (P8 2.2)
     local_port: int = 8765
     # the team inside the one bot (D111): agent → display name. `coder` is required; roles
     # without their own agent speak as the Coder (`devops`: deployment note + DevOps, D113)
     agents: dict[str, str] = Field(
         default_factory=lambda: {"coder": "Coder", "reviewer": "Reviewer", "devops": "DevOps"}
     )
+
+    @model_validator(mode="before")
+    @classmethod
+    def _legacy(cls, data: object) -> object:
+        """Settings of the removed Teams front-end (bot name, main-channel summaries, daily
+        digest): accepted in old configs and ignored."""
+        if isinstance(data, dict):
+            data = {k: v for k, v in data.items()
+                    if k not in ("bot_name", "channel_summaries", "digest_time")}
+        return data
 
     @model_validator(mode="after")
     def _check_agents(self) -> ChatConfig:
@@ -418,6 +423,18 @@ class GitConfig(_Strict):
     allow_same_gitlab_identity: bool = False  # one account as coder and reviewer (D194)
 
 
+SpecSource = Literal["google-doc", "local"]
+
+
+class SpecConfig(_Strict):
+    """Where `implement` gets the tech spec (env: TECH_SPEC_SOURCE, TECH_SPEC_DIR). `google-doc`:
+    the person pastes a Google Doc link (the pipeline reads it with its Google login). `local`:
+    the person picks a document from `local_dir` (default `tech_spec/` in the pipeline repo)."""
+
+    source: SpecSource = "local"
+    local_dir: str = "tech_spec"
+
+
 class DemoConfig(_Strict):
     """`pipeline demo-reset` (P8 4.1): the tickets it resets when none are named."""
 
@@ -431,7 +448,6 @@ class PipelineConfig(_Strict):
     agent_pool: dict[str, list[Slot]]
     gates: dict[str, GateMode] = Field(
         default_factory=lambda: {
-            "start": "manual",
             "plan_approval": "manual",
             "review": "auto",  # P9: review → fix → re-review runs by itself (W15 lite)
             "fix": "auto",
@@ -448,7 +464,17 @@ class PipelineConfig(_Strict):
     qa: QaConfig = QaConfig()
     git: GitConfig = GitConfig()
     demo: DemoConfig = DemoConfig()
+    spec: SpecConfig = SpecConfig()
     acceptance: AcceptanceConfig = AcceptanceConfig()  # [P10]
+
+    @model_validator(mode="before")
+    @classmethod
+    def _legacy_gates(cls, data: object) -> object:
+        """`gates.start` (Jira pickup) is gone: tickets start from the terminal. Old configs
+        that still name it are accepted and the entry is ignored."""
+        if isinstance(data, dict) and isinstance(data.get("gates"), dict):
+            data = {**data, "gates": {k: v for k, v in data["gates"].items() if k != "start"}}
+        return data
 
     @model_validator(mode="after")
     def _check(self) -> PipelineConfig:
@@ -588,7 +614,6 @@ def parse_config(data: dict, source: str = "<config>") -> PipelineConfig:
 # value left in the YAML.
 JIRA_ENV = {
     "project": "JIRA_PROJECT",
-    "pickup_jql": "JIRA_PICKUP_JQL",
     "spec_field": "JIRA_SPEC_FIELD",
     "repos_field": "JIRA_REPOS_FIELD",
 }
@@ -598,6 +623,8 @@ RUN_VALUES_ENV = {
     "user_pk": "ACCEPTANCE_USER_PK",
     "user_id": "ACCEPTANCE_USER_ID",
 }
+TECH_SPEC_SOURCE_ENV = "TECH_SPEC_SOURCE"  # local | google-doc (spec.source)
+TECH_SPEC_DIR_ENV = "TECH_SPEC_DIR"  # spec.local_dir
 REVIEW_MODE_ENV = "REVIEW_MODE"  # local | gitlab (git.review_mode)
 ALLOWED_DB_HOSTS_ENV = "ACCEPTANCE_ALLOWED_DB_HOSTS"  # comma-separated
 
@@ -616,7 +643,7 @@ def apply_env(data: dict, env: Mapping[str, str], source: str = "<config>") -> d
         if env.get(name):
             jira[key] = env[name]
     missing = [name for key, name in JIRA_ENV.items()
-               if key not in ("pickup_jql", "spec_field", "repos_field")
+               if key not in ("spec_field", "repos_field")
                and not jira.get(key)]  # fmt: skip
     for repo in out.get("repos") or []:
         name = repo.get("name", "")
@@ -628,6 +655,11 @@ def apply_env(data: dict, env: Mapping[str, str], source: str = "<config>") -> d
             repo["stack"]["env_from"] = value
     if mode := (env.get(REVIEW_MODE_ENV) or "").strip().lower():
         out.setdefault("git", {})["review_mode"] = mode
+    if source := (env.get(TECH_SPEC_SOURCE_ENV) or "").strip().lower().replace("_", "-"):
+        out.setdefault("spec", {})["source"] = {"google": "google-doc", "gdoc": "google-doc",
+                                               "online": "google-doc"}.get(source, source)
+    if folder := (env.get(TECH_SPEC_DIR_ENV) or "").strip():
+        out.setdefault("spec", {})["local_dir"] = folder
     hosts = env.get(ALLOWED_DB_HOSTS_ENV)
     run_values = {k: env[n] for k, n in RUN_VALUES_ENV.items() if env.get(n)}
     if hosts or run_values:

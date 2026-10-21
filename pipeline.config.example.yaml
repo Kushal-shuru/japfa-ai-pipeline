@@ -3,14 +3,13 @@
 # each repo's GitLab project and live-test `.env` path, the live tests' DB hosts and run values.
 
 jira:
-  statuses:                         # D127: In Dev until merged; Blocked = needs a person
+  statuses:                         # D127: In Development until merged; Blocked = needs a person
     todo: "To Do"
-    in_dev: "In Dev"
+    in_dev: "In Development"
     blocked: "Blocked"
-    rft: "RFT"
+    rft: "Ready for Test"
     testing: "Testing"                # set by QA
-    qa_failed: "QA Failed"            # set by QA (after filing each bug as its own Jira ticket)
-    qa_passed: "QA Passed"            # set by QA
+    qa_passed: "QA - Passed"            # set by QA
 
 # One entry per product repository. `name` = the repo's name in this pipeline (also the folder
 # name in the ticket workspace and the choice shown by `implement`). Its GitLab project path and
