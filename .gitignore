@@ -21,3 +21,10 @@ build/
 *.db-shm
 pipeline.config.yaml
 
+
+# tech specs (pasted here when TECH_SPEC_SOURCE=local; may be confidential)
+tech_spec/*
+!tech_spec/.gitkeep
+
+# local working log (decisions, known issues, session log): not committed
+docs/PROGRESS.md
