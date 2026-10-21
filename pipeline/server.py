@@ -1,7 +1,7 @@
 """`pipeline serve` (Phase 3 8.1): one process with
 
 - the graph runtime (daemon worker threads running ticket steps for the command bus),
-- APScheduler pollers (Jira comment commands; Jira pickup when `gates.start == auto`; GitLab
+- APScheduler pollers (Jira comment commands; GitLab
   merge states for tickets waiting for their merges, P6),
 - a localhost-only HTTP endpoint for `pipeline say` / `status` / `slots`.
 
@@ -29,7 +29,6 @@ from pipeline.chat.commands import (
 from pipeline.events import (
     GitLabMergePoller,
     JiraCommentPoller,
-    JiraPickupPoller,
     MigrationPoller,
     QaPoller,
 )
@@ -155,7 +154,7 @@ def make_app(services: Services) -> web.Application:
 
 
 def start_pollers(services: Services) -> BackgroundScheduler:
-    """Jira comments (+ pickup), testing (QA Passed / QA Failed, D126) and the GitLab merge
+    """Jira comments, testing (QA - Passed, D126) and the GitLab merge
     poller. A dry run (fake Jira / GitLab) gets
     only the merge poller plus the dry-run merger, which merges one approved MR every few
     seconds so the merge wait can be watched."""
@@ -191,10 +190,6 @@ def start_pollers(services: Services) -> BackgroundScheduler:
     if deps.config.acceptance.mode != "off":  # P10: a migration applied on the dev DB
         scheduler.add_job(MigrationPoller(deps, services.runtime).poll, "interval",
                           seconds=deps.config.polling.migration_seconds, id="migrations",
-                          max_instances=1, coalesce=True)  # fmt: skip
-    if deps.config.gates.get("start") == "auto":
-        pickup = JiraPickupPoller(deps, services.bus)
-        scheduler.add_job(pickup.poll, "interval", seconds=seconds, id="jira_pickup",
                           max_instances=1, coalesce=True)  # fmt: skip
     scheduler.start()
     return scheduler

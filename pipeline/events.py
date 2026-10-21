@@ -1,4 +1,4 @@
-"""Pollers: Jira comment commands and (gates.start == auto) Jira pickup (Phase 3 8.2); GitLab
+"""Pollers: Jira comment commands (Phase 3 8.2); GitLab
 merge states for tickets waiting for their merges (Phase 6 4.5).
 
 Jira comments `/stop --confirm`, `/retry`, `/guide …` (P4b) go through the
@@ -115,34 +115,6 @@ class JiraCommentPoller:
             self.deps.jira.comment(key, reply, marker)
         except IntegrationError as err:
             get_logger(ticket=key).warning("jira_reply_failed", error=str(err))
-
-
-class JiraPickupPoller:
-    """`gates.start == auto`: start tickets matching `jira.pickup_jql` that aren't running."""
-
-    def __init__(self, deps: Any, bus: CommandBus) -> None:
-        self.deps = deps
-        self.bus = bus
-
-    def poll(self) -> list[str]:
-        if self.deps.config.gates.get("start") != "auto" or not self.deps.config.jira.pickup_jql:
-            return []
-        try:
-            keys = self.deps.jira.search(self.deps.config.jira.pickup_jql)
-        except IntegrationError as err:
-            get_logger().warning("jira_pickup_failed", error=str(err))
-            return []
-        started = []
-        for key in keys:
-            if self.deps.store.get_ticket(key) is not None:
-                continue  # known ticket: humans restart it explicitly
-            cmd = parse_command(
-                f"implement {key}", actor_id="jira-pickup", actor_name="Jira pickup",
-                source="jira",
-            )  # fmt: skip
-            if self.bus.handle(cmd).accepted:
-                started.append(key)
-        return started
 
 
 class GitLabMergePoller:

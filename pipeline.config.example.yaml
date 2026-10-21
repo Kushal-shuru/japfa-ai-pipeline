@@ -105,7 +105,6 @@ gates:                              # manual = wait for a human command/button; 
   # Automatic review loop (D112): review, fix and re_review all `auto` → the Coder hands the
   # merge requests to the Reviewer, the Reviewer hands the must-fix findings back (scope:
   # chat.default_fix_scope), … until the review passes or limits.max_review_rounds is reached.
-  start: manual
   plan_approval: manual
   review: auto                      # P9: the review starts when the MRs open
   fix: auto                         # P9: blockers + majors are fixed by themselves (default_fix_scope)

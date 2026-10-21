@@ -133,7 +133,7 @@ Cloud, any plan. A project (key used below: `DEMO`).
   - `JIRA_BASE_URL=https://<your-site>.atlassian.net`, `JIRA_EMAIL=<the account's email>`, `JIRA_API_TOKEN=<token>` in `.env`
   - The account must be able to browse the project, comment, edit issues, transition and attach files.
 - [ ] `JIRA_PROJECT=DEMO` in `.env`. Tickets the terminal accepts must start with this key (`DEMO-12`).
-- [ ] The label `ai-ready` is only used if you set `gates.start: auto` (Jira pickup); by default tickets are started from the terminal. Then also set `JIRA_PICKUP_JQL` in `.env`.
+- [ ] No label is needed: tickets are started from the terminal (`implement KEY`).
 - [ ] **QA bugs are separate Jira tickets** (the bug in the description). Nothing to configure: QA creates them, and the developer passes their keys to `fix` (GUIDE §8).
 - [ ] Jira comment commands (`/stop`, `/retry`, `/guide …`) work for anyone who can comment on the ticket. Keep comment permission to the team.
 
@@ -211,8 +211,6 @@ Edit `.env` (copied from `.env.example`). Nothing here is ever committed. `*` = 
 | `JIRA_BASE_URL`* | `https://site.atlassian.net` | Jira Cloud site |
 | `JIRA_EMAIL`*, `JIRA_API_TOKEN`* | | The pipeline's Jira user (§4) |
 | `JIRA_PROJECT`* | `DEMO` | Project key; tickets must start with it |
-| `JIRA_PICKUP_JQL` | `project = DEMO AND status = "To Do" AND labels = ai-ready` | Only for `gates.start: auto` |
-| `JIRA_SPEC_FIELD`, `JIRA_REPOS_FIELD` | `customfield_10043` | Optional Jira fields (§4) |
 | `GITLAB_BASE_URL`* | `https://gitlab.example.com` | GitLab host |
 | `GITLAB_CODER_TOKEN`*, `GITLAB_REVIEWER_TOKEN`* | | The two users' tokens (§5) |
 | `REPO_<NAME>_GITLAB_PROJECT`* | `closio/backend/nodejs-ws1closio` | One per repo in the config |
@@ -273,7 +271,6 @@ agent_pool:                 # named slots; the number of slots = how many agents
   reviewer: [{name: Reviewer-A, provider: claude}, {name: Reviewer-B, provider: codex}]
   deploy:   [{name: Deploy-A, provider: claude}]
 gates:                      # manual = wait for a person's command; auto = continue
-  start: manual
   plan_approval: manual
   review: auto
   fix: auto

@@ -73,7 +73,7 @@ Full rationale: `docs/DESIGN.md` (written early; where it disagrees with this fi
 ### 3.1 Workflow graph (one thread per Jira key)
 
 ```
-[start]  manual: "@SDLC Bot implement DEMO-12"   |  auto: Jira `ai-ready` pickup
+[start]  manual: "implement DEMO-12" in the terminal
    ▼
 load_context ─(missing spec / repos / AC)→ tell user (chat + Jira) → END
    ▼
@@ -183,7 +183,6 @@ Each gate is `manual` (post a card with buttons in the ticket thread, mirror "wa
 
 | Gate | Default | Why |
 |---|---|---|
-| `start` | manual | Humans choose which tickets the AI takes (`auto` = Jira `ai-ready` pickup) |
 | `plan_approval` | manual | Cheapest point to catch a wrong approach |
 | `review` | auto (P9; D87 made it manual) | The review starts when the MRs open; approval needs every acceptance criterion met and every chosen finding confirmed fixed (P9) |
 | `fix` | auto (P9) | Blockers and majors (`chat.default_fix_scope`) are fixed without asking; `manual` = people choose |
@@ -326,7 +325,7 @@ ai-sdlc-pipeline/
 │   │   ├── gates.py                 # [P3] gate(): manual → card + interrupt; auto → pass
 │   │   ├── nodes/                   # [P3, P5–P7] (P5: review.py, fixing.py, change.py; P6: deploy.py, waits.py, sync.py; P7: qa.py)
 │   │   └── build.py                 # [P3]
-│   ├── events.py                    # [P3] pollers (GitLab merges, Jira comments, optional Jira pickup); [P10] migrations
+│   ├── events.py                    # [P3] pollers (GitLab merges, Jira comments); [P10] migrations
 │   ├── server.py                    # [P3] workers + pollers; [P4] + bot endpoint
 │   ├── environment.py               # [P8] machine problems vs code problems (D134)
 │   ├── pause.py                     # [P8] PAUSE file: wait while paused (D138)

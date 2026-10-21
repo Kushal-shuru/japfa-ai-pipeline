@@ -94,7 +94,7 @@ SDLC Bot:   Fixes pushed. Re-review… ✅ Approved. Deployment note attached.
 
 | Step | Default | Options |
 |---|---|---|
-| Start work on a ticket | **Manual** (tag the bot) | Auto = pick up Jira tickets labelled `ai-ready` |
+| Start work on a ticket | **Manual** (the terminal) | (Jira pickup was removed) |
 | Approve the plan | **Manual** (button) | Auto |
 | Review after MRs are raised | Auto | Manual |
 | Fix review findings | **Manual** (Fix blockers / major+ / all / Accept) | Auto (uses default scope) |
