@@ -8,6 +8,7 @@ from pipeline.agents import planner
 from pipeline.chat.cards import Action, Card
 from pipeline.chat.summaries import error_words, join_words, plural
 from pipeline.context import build_context, context_ok
+from pipeline.criteria import extractor
 from pipeline.graph.gates import gate_prepare, gate_wait
 from pipeline.graph.nodes.common import (
     after_run,
@@ -74,7 +75,7 @@ def refresh_context(state: TicketState, deps: Any, node: str) -> tuple[Any, dict
     key = state["key"]
     problems: list[str] = []
     ctx = build_context(key, deps.jira, deps.spec, deps.config, problems,
-                        intake_of(deps.store, key))  # fmt: skip
+                        intake_of(deps.store, key), extractor(deps, key))  # fmt: skip
     ok, more = context_ok(ctx, deps.config)
     problems += more
     if not ok:

@@ -121,13 +121,14 @@ def check(
 
 def _load_context(key: str, deps):
     from pipeline.context import build_context, context_ok
+    from pipeline.criteria import extractor
     from pipeline.intake import intake_of
 
     fetch_problems: list[str] = []
     try:
         with console.status(f"Reading {key}…"):
             ctx = build_context(key, deps.jira, deps.spec, deps.config, fetch_problems,
-                                intake_of(deps.store, key))  # fmt: skip
+                                intake_of(deps.store, key), extractor(deps, key))  # fmt: skip
     except IntegrationError as err:
         raise _fail(str(err)) from None
     ok, problems = context_ok(ctx, deps.config)

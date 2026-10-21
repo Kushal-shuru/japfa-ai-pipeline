@@ -367,6 +367,12 @@ def make_dry_run(key: str, config: PipelineConfig, secrets: Secrets, root: Path,
     jira.add_issue(key, f"Dry run {key}", description, repos=repos, spec=SPEC_URL)
 
     fake = FakeProvider("fake")
+
+    def dry_criteria(cwd: Any, prompt: str) -> dict:  # the dry run's description is a plain list
+        after = prompt.split("Acceptance criteria", 1)[-1]
+        return {"criteria": [ln[2:].strip() for ln in after.splitlines() if ln.startswith("- ")]}
+
+    fake.set_default("criteria", dry_criteria, as_final_message=True)
     fake.finish.update(reviewer=complete_review, contract_check=complete_review)
     for _ in range(config.limits.max_plan_revisions + 1):
         fake.add("planner", demo_plan(key, config, repos))

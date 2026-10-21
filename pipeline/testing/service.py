@@ -425,6 +425,7 @@ class AcceptanceService:
         (the Tester's cases are cached by criteria, so they follow the edit). Falls back to the
         text the ticket started with when Jira can't be read."""
         from pipeline.context import with_description
+        from pipeline.criteria import extractor
 
         ctx = state.get("context")
         if ctx is None:
@@ -436,7 +437,7 @@ class AcceptanceService:
         text = issue.get("description_md") or issue.get("description") or ""
         if not text or text == ctx.description_md:
             return state
-        fresh = with_description(ctx, text)
+        fresh = with_description(ctx, text, extractor(self.deps, state["key"]))
         self.deps.workspaces.write_ticket_files(fresh)
         get_logger(ticket=state["key"], node="acceptance").info("ticket_text_refreshed")
         return {**state, "context": fresh}

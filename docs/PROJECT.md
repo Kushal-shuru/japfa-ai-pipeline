@@ -88,7 +88,7 @@ the repo they work in.
 
 Two layers (D87): the **orchestrator** (Python, deterministic) owns the workflow, every external
 write, limits and state; the **agents** (LLM runs) only do the thinking and the code, and write their
-results as JSON files the orchestrator validates. A tiny `summary` agent run only writes wording.
+results as JSON files the orchestrator validates. A tiny `summary` agent run only writes wording, and a small `criteria` run copies the acceptance criteria out of the ticket description (any format), word for word: the pipeline rejects anything that is not a quote from it (D218).
 
 | Component | Does | Never does |
 |---|---|---|
@@ -126,19 +126,19 @@ implement → load_context ─(missing spec/repos/criteria)→ tell the user, st
           → [gate deploy_doc] → deploy_doc (note → Jira + terminal)
           → wait_merge ⏸  (people merge; polls GitLab)
           → post_qa_notes (Jira RFT + test notes)
-          → wait_qa ⏸ ──QA Passed──► qa_done
-                 │ QA Failed + `fix KEY DEMO-13 …`
+          → wait_qa ⏸ ──QA - Passed──► qa_done
+                 │ QA moves it to Blocked + `fix KEY DEMO-13 …`
                  ▼
           qa_fix (new branch …-qa<n>) → plan (qa_fix) → … the same loop → post_qa_notes
           (any step can end in needs_human: a message says why; retry / guide / stop / accept)
 ```
 
 **Gates** are `manual` (post a card, wait for a command) or `auto` (continue). Defaults:
-`start` manual · `plan_approval` manual · `review` auto · `fix` auto · `re_review` auto ·
-`deploy_doc` auto · `qa_fix` manual. Merging and QA Failed / QA Passed are always human.
+`plan_approval` manual · `review` auto · `fix` auto · `re_review` auto ·
+`deploy_doc` auto · `qa_fix` manual. Merging and Blocked (QA failed) / QA - Passed are always human.
 
-**Jira statuses** (D127): To Do (person) → **In Dev** (pipeline, from the plan to the last merge) →
-**RFT** (all merged); **Blocked** when it needs a person; **Testing**, **QA Failed**, **QA Passed**
+**Jira statuses** (D127): To Do (person) → **In Development** (pipeline, from the plan to the last merge) →
+**Ready for Test** (all merged); **Blocked** when it needs a person; **Testing**, **QA Failed**, **QA - Passed**
 are set by QA. If a person moves the ticket out of the expected status, the thread halts
 (`moved_by_human`): Jira is the source of truth.
 

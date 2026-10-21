@@ -87,6 +87,7 @@ agents:
     reviewer:   { provider: claude, model: claude-sonnet-5, effort: medium, max_turns: 100, timeout_min: 30 }
     deployment: { provider: claude, model: claude-haiku-4-5, max_turns: 80, timeout_min: 20 }  # P9: writes from given facts (no effort on Haiku)
     summary:    { provider: claude, model: claude-haiku-4-5, max_turns: 8, timeout_min: 3 }  # D209: the merge request description (a tiny run, outside the pool)
+    criteria:   { provider: claude, model: claude-sonnet-5, effort: low, max_turns: 8, timeout_min: 3 }  # D218: copies the acceptance criteria out of the ticket description (a small run, outside the pool)
     qa_notes:   { provider: claude, model: claude-haiku-4-5, max_turns: 60, timeout_min: 20 }  # P9: writes from given facts (no effort on Haiku)
 
 limits:

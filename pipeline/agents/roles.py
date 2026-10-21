@@ -33,7 +33,7 @@ def guidance_md(guidance: list[dict] | None) -> str | None:
 
 READ_ONLY_ROLES = frozenset(
     {"planner", "reviewer", "reviewer_ticket", "contract_check", "deployment", "qa_notes",
-     "tester", "summary"}
+     "tester", "summary", "criteria"}
 )
 WRITABLE_ROLES = frozenset({"coder", "coder_fix", "coder_rebase", "coder_ticket",
                             "coder_ticket_fix"})
@@ -53,6 +53,7 @@ PROMPT_FILES: dict[str, str | tuple[str, ...]] = {
     "qa_notes": "qa_notes_backend.md",
     "tester": "tester.md",  # P10: the live acceptance cases
     "summary": "chat_summary.md",  # D209: short plain texts
+    "criteria": "acceptance_criteria.md",  # D218: the criteria, copied word for word
 }
 RESULT_FILES: dict[str, str] = {
     "planner": "plan.json",
@@ -68,6 +69,7 @@ RESULT_FILES: dict[str, str] = {
     "qa_notes": "qa_notes.json",
     "tester": "acceptance_plan.json",
     "summary": "summary.json",
+    "criteria": "criteria.json",
 }
 ROLE_POOL: dict[str, str | None] = {
     "planner": "coder",
@@ -83,6 +85,7 @@ ROLE_POOL: dict[str, str | None] = {
     "qa_notes": "deploy",
     "tester": "reviewer",  # P10: independent of the coder that wrote the code under test
     "summary": None,  # a tiny run outside the pool
+    "criteria": None,  # a small run outside the pool
 }
 
 # Claude tool sets. Edit rules also cover Write (Claude Code permissions docs).

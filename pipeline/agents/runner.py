@@ -36,7 +36,7 @@ if TYPE_CHECKING:
 M = TypeVar("M", bound=BaseModel)
 AGENT_DIR = ".agent"
 WRAP_UP_TURNS = 12  # turns granted to commit + write the result after hitting max_turns
-FINAL_MESSAGE_ROLES = frozenset({"summary"})
+FINAL_MESSAGE_ROLES = frozenset({"summary", "criteria"})
 MAX_SNAPSHOT_BYTES = 5_000_000
 
 

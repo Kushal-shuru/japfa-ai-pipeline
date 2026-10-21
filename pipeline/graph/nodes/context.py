@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from pipeline.context import build_context, context_ok
+from pipeline.criteria import extractor
 from pipeline.graph.nodes.common import bullets
 from pipeline.graph.state import RepoWork, TicketState
 from pipeline.intake import intake_of
@@ -16,7 +17,7 @@ def load_context(state: TicketState, deps: Any) -> dict:
     by = state.get("started_by") or "someone"
     problems: list[str] = []
     ctx = build_context(key, deps.jira, deps.spec, deps.config, problems,
-                        intake_of(deps.store, key))  # fmt: skip
+                        intake_of(deps.store, key), extractor(deps, key))  # fmt: skip
     ok, more = context_ok(ctx, deps.config)
     problems += more
     deps.chat.ensure_thread(key)

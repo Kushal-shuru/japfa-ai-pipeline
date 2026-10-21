@@ -59,7 +59,7 @@ branch. The tech spec file in `tech_spec/` is not deleted.
 | Put in the ticket | Why |
 |---|---|
 | **Description**: what and why, a few sentences | The planner reads it |
-| **Acceptance criteria**, numbered, one behaviour each: `AC1 Given … When … Then …`. A shared precondition once, as "Given (all)" | Every criterion must appear in the plan, and the review checks each one |
+| **Acceptance criteria**, numbered, one behaviour each: `AC1 Given … When … Then …`. A shared precondition once, as "Given (all)". Any format works (a list, a heading per criterion, a table …): an agent copies them out of the description **word for word**, and the pipeline checks each one is really in the ticket. Put them under an "Acceptance criteria" heading and keep each criterion's number (`AC 1`) | Every criterion must appear in the plan, and the review checks each one |
 | **Out of scope** | Stops the plan from growing |
 | **Permission ID** only if one applies (e.g. `securityID 123`) | "As an admin" alone means any logged-in user; the AI never invents permission ids |
 | Use the same names for routes, fields and error codes as the tech spec | The planner finds the right section of the spec by those names |
