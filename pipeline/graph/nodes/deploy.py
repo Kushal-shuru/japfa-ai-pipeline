@@ -224,12 +224,6 @@ def deploy_doc(state: TicketState, deps: Any) -> dict:
         "", fallback,
     )  # fmt: skip
     notifier.deploy_note(key, summary, attachment_name(key, qa), card.to_dict(), n, regenerate)
-    if not regenerate:  # 2.1: people outside the thread merge and do the DevOps work
-        mrs = plural(len(order), "merge request")
-        deps.notifier.channel(key, f"approved and ready to merge ({mrs}, in the order "
-                              f"{' → '.join(order)}). "
-                              + (f"DevOps first: {join_words(reasons)}." if devops
-                                 else "Nothing for DevOps."))  # fmt: skip
 
     new_repos: dict[str, RepoWork] = {r: {**w, "devops_facts": facts.get(r)}
                                       for r, w in state["repos"].items()}  # fmt: skip

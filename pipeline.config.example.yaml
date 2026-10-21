@@ -113,7 +113,6 @@ gates:                              # manual = wait for a human command/button; 
   qa_fix: manual
 
 chat:
-  bot_name: "SDLC Bot"
   agents:                           # the team inside the bot (D111): who speaks and owns which work
     coder: Coder                    # plans, codes, fixes review findings and change requests
     reviewer: Reviewer              # reviews; can accept as it is
@@ -121,8 +120,6 @@ chat:
   default_fix_scope: "major+"       # used when the fix gate is auto
   verbosity: minimal                # P9: plan, one merge-request card, decisions, blockers; `normal` = every step
   reminder_hours: 0                 # >0: a person-waiting gate this long → one reminder in the thread (P8)
-  channel_summaries: true           # needs help / limits / ready to merge → one line in the main channel
-  digest_time: null                 # "09:00" = a daily digest in the main channel (server time)
   local_port: 8765                  # localhost: `pipeline say` and an attached `pipeline cli`
 
 chat_llm:                           # short plain texts (merge request descriptions), D209

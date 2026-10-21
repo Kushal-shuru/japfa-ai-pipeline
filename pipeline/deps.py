@@ -53,7 +53,6 @@ class Deps:
             None,  # terminal messages are templates (D167); only the MR description uses the writer
             self.config.chat_llm,
             self.config.chat.agents,
-            channel=self.config.chat.channel_summaries,
             verbosity=self.config.chat.verbosity,
             auto_plan=self.config.gates.get("plan_approval") == "auto",
         )

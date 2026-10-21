@@ -454,12 +454,12 @@ def say(
         try:
             chat_cfg = services.deps.config.chat
             cmd = parse_command(text, actor_id=user, actor_name=user, source="cli",
-                                bot_name=chat_cfg.bot_name, agents=chat_cfg.agents)  # fmt: skip
+                                agents=chat_cfg.agents)  # fmt: skip
         except (UnknownCommandError, CommandParseError) as err:  # exact commands only (D167)
             raise _fail(cli_hint(text, err, services.deps.config.jira.project)) from None
         result = services.bus.handle(cmd)
         chat_cfg = services.deps.config.chat
-        _print_md(voiced(cmd, result.message_md, chat_cfg.agents, chat_cfg.bot_name))
+        _print_md(voiced(cmd, result.message_md, chat_cfg.agents))
         if not result.accepted:
             raise typer.Exit(code=1)
         return

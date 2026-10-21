@@ -217,10 +217,8 @@ def suggest(text: str) -> str:
             "can do.")  # fmt: skip
 
 
-def _strip_mention(text: str, bot_name: str, agents: dict[str, str] | None = None) -> str:
-    for name in {bot_name, "SDLC Bot"}:
-        text = re.sub(rf"^@?{re.escape(name)}\b[\s,:]*", "", text, flags=re.I).strip()
-    return split_address(text, agents)[1]
+def _strip_mention(text: str, agents: dict[str, str] | None = None) -> str:
+    return split_address(text.strip(), agents)[1]
 
 
 # ---------- the team inside the bot (D111) ----------
@@ -245,21 +243,17 @@ def split_address(text: str, agents: dict[str, str] | None) -> tuple[str | None,
     return None, text
 
 
-def addressed_agent(text: str, agents: dict[str, str] | None, bot_name: str = "") -> str | None:
-    body = re.sub(r"<at>[^<]*</at>", "", text).strip()
-    for name in {bot_name, "SDLC Bot"} - {""}:
-        body = re.sub(rf"^@?{re.escape(name)}\b[\s,:]*", "", body, flags=re.I).strip()
-    return split_address(body, agents)[0]
+def addressed_agent(text: str, agents: dict[str, str] | None) -> str | None:
+    return split_address(text.strip(), agents)[0]
 
 
-def voiced(cmd: Command, message_md: str, agents: dict[str, str],
-           bot_name: str = "") -> str:  # fmt: skip
+def voiced(cmd: Command, message_md: str, agents: dict[str, str]) -> str:
     """The reply as the team (D111): the agent that owns the command answers ("**Reviewer:**
     Starting the review."); if the person asked another agent, it hands over first. `help`,
     `status` and `stop` answer as the agent asked (plain when nobody was named)."""
     if not message_md:
         return message_md
-    asked = addressed_agent(cmd.raw, agents, bot_name)
+    asked = addressed_agent(cmd.raw, agents)
     owner = COMMAND_AGENT.get(cmd.verb)
     speaker = agent_of(owner, agents) if owner else asked
     if speaker is None:
@@ -289,13 +283,12 @@ def parse_command(
     actor_name: str,
     source: str,
     thread_key: str | None = None,
-    bot_name: str = "SDLC Bot",
     agents: dict[str, str] | None = None,
 ) -> Command:
-    """Exact grammar → `Command`. Case-insensitive; tolerant of a leading `@SDLC Bot` and of
-    a team member's name (`@Reviewer review DEMO-3`, `coder, fix #1`; D111)."""
+    """Exact grammar → `Command`. Case-insensitive; tolerant of a
+    team member's name (`@Reviewer review DEMO-3`, `coder, fix #1`; D111)."""
     raw = text
-    body = _strip_mention(text, bot_name, agents)
+    body = _strip_mention(text, agents)
     body = body[1:].lstrip() if body.startswith("/") else body  # `/retry DEMO-12` (D167)
     if not body:
         raise CommandParseError("What would you like me to do? Tell me in your own words.")

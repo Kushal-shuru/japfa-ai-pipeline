@@ -88,10 +88,9 @@ class Notifier:
 
     def __init__(self, chat: Any, jira: Any, store: Any = None, llm: Any = None,
                  llm_cfg: Any = None, agents: dict[str, str] | None = None,
-                 channel: bool = True, verbosity: str = "normal",
+                 verbosity: str = "normal",
                  auto_plan: bool = False) -> None:  # fmt: skip
         self.chat = chat
-        self.channel_on = channel
         self.minimal = verbosity == "minimal"  # P9
         self.auto_plan = auto_plan  # plan_approval gate is auto: the plan needs its own message
         self._mem: dict[str, dict] = {}  # the delivery record without a store (unit tests)
@@ -518,19 +517,6 @@ class Notifier:
         else:
             self._jira(key, body, "needs_human", round, swallow=True)
         return msg
-
-    def channel(self, key: str, text: str) -> str:
-        """One line in the main channel (P8 2.1: needs help, limits, ready to merge) for
-        people who don't follow the ticket's thread. Skipped when the ticket has no thread of
-        its own (a group chat, the console): it would say the same thing twice there."""
-        own = getattr(self.chat, "has_own_thread", None)
-        if not self.channel_on or (own is not None and not own(key)):
-            return ""
-        try:
-            return self.chat.post(None, f"**{key}**: {text}")
-        except Exception as err:  # a courtesy message; the thread already has it
-            get_logger(ticket=key).warning("channel_post_failed", error=str(err))
-            return ""
 
     def error(self, key: str, text: str, round: int | str = 0) -> str:
         msg = self.chat.post(key, text)

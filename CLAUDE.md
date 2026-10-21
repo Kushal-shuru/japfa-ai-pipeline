@@ -231,7 +231,7 @@ agent_pool:
 | Tracking DB | SQLite via **SQLAlchemy Core** (same `pipeline.db`; Postgres later) |
 | Models / validation | `pydantic` v2, `pydantic-settings` |
 | Jira / GitLab / Docs | `atlassian-python-api`, `python-gitlab`, `google-api-python-client` + `google-auth-oauthlib` |
-| HTTP server | `aiohttp` (Microsoft 365 Agents SDK hosting, D74) |
+| HTTP server | `aiohttp` (the localhost endpoint of `pipeline serve`) |
 | Summary writer [D209] | The `summary` role through the same agent runner as every agent (Claude Haiku by default, or Codex); result `{text}` |
 | Scheduling | `apscheduler` (GitLab/Jira pollers) |
 | CLI | `typer` + `rich` |
@@ -329,7 +329,7 @@ ai-sdlc-pipeline/
 │   ├── server.py                    # [P3] workers + pollers; [P4] + bot endpoint
 │   ├── environment.py               # [P8] machine problems vs code problems (D134)
 │   ├── pause.py                     # [P8] PAUSE file: wait while paused (D138)
-│   ├── reminders.py                 # [P8] gate reminders, daily digest (D141)
+│   ├── reminders.py                 # [P8] gate reminders (D141)
 │   ├── maintenance.py               # [P8] gc, demo-reset (D143)
 │   ├── logs.py                      # [P8] `pipeline logs` timeline
 │   └── report.py                    # [P8] report: text / chat card / HTML (D139)
@@ -883,7 +883,7 @@ Secrets in `.env`, and so are the values that differ per environment (D193): `JI
 
 `.env`: `JIRA_BASE_URL`, `JIRA_EMAIL`, `JIRA_API_TOKEN`, `GITLAB_BASE_URL`, `GITLAB_CODER_TOKEN`, `GITLAB_REVIEWER_TOKEN`, `GOOGLE_OAUTH_CLIENT_PATH`, `GOOGLE_TOKEN_PATH`, `PIPELINE_HOME`; optional: `CLAUDE_CODE_OAUTH_TOKEN`, `ANTHROPIC_API_KEY`, `OPENAI_API_KEY` (only for `api_key` auth).
 
-`pipeline.config.yaml` sections: `jira`, `repos`, `agents` (default/fallback provider, per-provider auth, per-role model/limits, `single_session` D200), `agent_pool`, `gates`, `chat` (bot name, the team's names `agents`, default fix scope), `chat_llm` (D209: `provider` agent | none, `timeout_s`, `summaries`, `send_code`; the model comes from `agents.roles.summary`), `limits`, `polling`, `qa`, `git`, `demo` [P8] (`tickets` for `demo-reset`), `verify` [P9] (`env_passthrough`), `acceptance` [P10] (mode, allowed_db_hosts, run_values (a chosen partner / user), identities, default_identity, repo_headers, externals, notes; per repo `stack`: start, env_from, env templates, health_path, db variable names). `chat` also has `reminder_hours` (0 = off, the default since P9), `channel_summaries`, `digest_time` [P8], `verbosity` [P9] (`minimal` default | `normal`).
+`pipeline.config.yaml` sections: `jira`, `repos`, `agents` (default/fallback provider, per-provider auth, per-role model/limits, `single_session` D200), `agent_pool`, `gates`, `chat` (the team's names `agents`, default fix scope), `chat_llm` (D209: `provider` agent | none, `timeout_s`, `summaries`, `send_code`; the model comes from `agents.roles.summary`), `limits`, `polling`, `qa`, `git`, `demo` [P8] (`tickets` for `demo-reset`), `verify` [P9] (`env_passthrough`), `acceptance` [P10] (mode, allowed_db_hosts, run_values (a chosen partner / user), identities, default_identity, repo_headers, externals, notes; per repo `stack`: start, env_from, env templates, health_path, db variable names). `chat` also has `reminder_hours` (0 = off, the default since P9), `verbosity` [P9] (`minimal` default | `normal`).
 
 ---
 

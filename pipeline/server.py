@@ -103,7 +103,7 @@ def make_app(services: Services) -> web.Application:
             cmd = parse_command(
                 text, actor_id=str(data.get("actor_id") or local_user()), actor_name=user,
                 source="cli", thread_key=data.get("thread_key"),
-                bot_name=deps.config.chat.bot_name, agents=deps.config.chat.agents,
+                agents=deps.config.chat.agents,
             )  # fmt: skip
         except UnknownCommandError as err:  # exact commands only (D167)
             return web.json_response({"accepted": False, "key": None, "chat_seq": seq,
@@ -114,7 +114,7 @@ def make_app(services: Services) -> web.Application:
                                       "chat_seq": seq})  # fmt: skip
         result = bus.handle(cmd)
         chat_cfg = deps.config.chat
-        said = voiced(cmd, result.message_md, chat_cfg.agents, chat_cfg.bot_name)  # D111
+        said = voiced(cmd, result.message_md, chat_cfg.agents)  # D111
         return web.json_response({**result.model_dump(), "message_md": said, "key": cmd.key,
                                   "verb": cmd.verb, "chat_seq": seq})  # fmt: skip
 
@@ -178,15 +178,10 @@ def start_pollers(services: Services) -> BackgroundScheduler:
                       id="qa", max_instances=1, coalesce=True)  # fmt: skip
     scheduler.add_job(comments.poll, "interval", seconds=seconds, id="jira_comments",
                       max_instances=1, coalesce=True)  # fmt: skip
-    from pipeline.reminders import GateReminder, post_digest
+    from pipeline.reminders import GateReminder
 
     scheduler.add_job(GateReminder(deps, services.runtime).poll, "interval", minutes=10,
                       id="gate_reminders", max_instances=1, coalesce=True)  # fmt: skip
-    digest = deps.config.chat.digest_time
-    if digest:
-        hour, _, minute = digest.partition(":")
-        scheduler.add_job(post_digest, "cron", args=[deps, services.runtime], hour=int(hour),
-                          minute=int(minute or 0), id="digest", coalesce=True)  # fmt: skip
     if deps.config.acceptance.mode != "off":  # P10: a migration applied on the dev DB
         scheduler.add_job(MigrationPoller(deps, services.runtime).poll, "interval",
                           seconds=deps.config.polling.migration_seconds, id="migrations",

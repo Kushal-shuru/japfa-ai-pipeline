@@ -1,10 +1,8 @@
-"""Gate reminders (Phase 8 1.5) and the daily digest (2.2), run by the server's scheduler.
+"""Gate reminders (Phase 8 1.5), run by the server's scheduler.
 
 - A ticket waiting for a person (a manual gate, or Needs Human) longer than
   `chat.reminder_hours` gets **one** reminder in its thread, naming who started it. A new wait
   (the next gate, or the same gate again later) can get its own reminder.
-- `chat.digest_time` ("09:00", server time): one message in the main channel with the tickets
-  by stage and the ones waiting for people, longest first.
 """
 
 from __future__ import annotations
@@ -67,36 +65,3 @@ class GateReminder:
             deps.store.record_event(key, "chat_post", data={"message_id": msg, "reminder": tag})
             done.append(key)
         return done
-
-
-def digest_text(deps: Any, runtime: Any) -> str | None:
-    """Tickets by stage + who is waiting for people; None when nothing is in flight."""
-    from pipeline.chat.commands import STAGE_LABELS
-
-    now = _ts(deps.clock())
-    assert now is not None
-    rows = [r for r in deps.store.list_tickets() if not r.get("finished_at")]
-    if not rows:
-        return None
-    stages: Counter[str] = Counter()
-    waiting: list[tuple[float, str]] = []
-    for row in rows:
-        info = runtime.snapshot(row["key"])
-        stage = STAGE_LABELS.get(row.get("stage") or "", row.get("stage") or "unknown")
-        stages[stage] += 1
-        if info.waiting and not info.busy:
-            since = wait_started(deps.store, row["key"], info.waiting)
-            secs = (now - since).total_seconds() if since else 0.0
-            waiting.append((secs, f"- **{row['key']}**: waiting for {gate_label(info.waiting)}"
-                                  f" for {duration_words(secs)}"))  # fmt: skip
-    lines = [f"**Daily digest**: {len(rows)} tickets in flight."]
-    lines += [f"- {stage}: {n}" for stage, n in stages.most_common()]
-    if waiting:
-        lines += ["", "Waiting for people (longest first):"]
-        lines += [line for _, line in sorted(waiting, reverse=True)]
-    return "\n".join(lines)
-
-
-def post_digest(deps: Any, runtime: Any) -> str:
-    text = digest_text(deps, runtime)
-    return deps.chat.post(None, text) if text else ""

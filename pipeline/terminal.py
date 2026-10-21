@@ -88,11 +88,11 @@ class LocalBackend:
         chat = self.deps.config.chat
         try:
             cmd = parse_command(text, actor_id=self.user, actor_name=self.user, source="cli",
-                                bot_name=chat.bot_name, agents=chat.agents)  # fmt: skip
+                                agents=chat.agents)  # fmt: skip
         except CommandParseError as err:
             return {"accepted": False, "message_md": cli_hint(text, err, self.prefix)}
         result = self.services.bus.handle(cmd)
-        said = voiced(cmd, result.message_md, chat.agents, chat.bot_name)
+        said = voiced(cmd, result.message_md, chat.agents)
         return {**result.model_dump(), "key": cmd.key, "verb": cmd.verb, "message_md": said}
 
     @property
@@ -160,7 +160,7 @@ class RemoteBackend:
         chat = self.deps.config.chat
         try:  # checked here, so a mistake gets the exact form
             parse_command(text, actor_id=self.user, actor_name=self.user, source="cli",
-                          bot_name=chat.bot_name, agents=chat.agents)  # fmt: skip
+                          agents=chat.agents)  # fmt: skip
         except CommandParseError as err:
             return {"accepted": False, "message_md": cli_hint(text, err, self.prefix)}
         try:

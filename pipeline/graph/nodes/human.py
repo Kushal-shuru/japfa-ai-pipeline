@@ -49,7 +49,7 @@ def retry_target(node: str | None) -> str:
 
 
 def halt_kind(reason: str, event: dict) -> str:
-    """Why a ticket stopped, for the card and the main channel (1.3): provider_limit,
+    """Why a ticket stopped, for the card (1.3): provider_limit,
     machine, rounds, stopped or other. From the plain words the steps use
     (`summaries.ERROR_WORDS`, the round-limit halts)."""
     low = reason.lower()
@@ -111,10 +111,6 @@ def needs_human(state: TicketState, deps: Any) -> dict:
     actions.append(Action("Stop", f"stop {key} --confirm", style="destructive"))
     card = Card(title=f"{key} needs your help", facts=facts, actions=actions)
     msg = deps.notifier.needs_human(key, reason, card.to_dict(), round=round_, step=failed)
-    if kind != "stopped":  # a person's own stop needs no announcement
-        why = KIND_WORDS.get(kind, f"it stopped during {step_words(failed)}")
-        deps.notifier.channel(key, f"needs someone: {why}. Details and the choices are in its "
-                              "thread.")  # fmt: skip
     deps.store.upsert_ticket(
         key, stage="needs_human", halted_reason=reason, waiting_for="needs_human",
         **({} if moved else {"jira_status": status}),

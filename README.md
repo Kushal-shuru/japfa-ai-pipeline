@@ -39,7 +39,7 @@ uv run pipeline warm                                  # base clones + node_modul
 
 The product repos need the agent files `CLAUDE.md`/`AGENTS.md` (identical), `REVIEW.md` and a deployment template (SETUP §7).
 
-Config sections (`pipeline.config.yaml`): `jira`, `repos`, `agents` (providers, auth, per-role model and limits), `agent_pool`, `gates`, `chat` (team names, reminders, digest), `chat_llm`, `limits`, `polling`, `qa`, `git`, `demo`. The example file explains each field.
+Config sections (`pipeline.config.yaml`): `jira`, `repos`, `agents` (providers, auth, per-role model and limits), `agent_pool`, `gates`, `chat` (team names, reminders), `chat_llm`, `limits`, `polling`, `qa`, `git`, `demo`. The example file explains each field.
 
 **Where the review happens:** `REVIEW_MODE` in `.env` (`local` is the default, `gitlab` the earlier flow). `local`: the Reviewer reviews the branches on this machine and the merge requests are pushed and opened only after it approves, with one review-summary comment each. `gitlab`: the merge requests open first and the Reviewer posts its findings on them as threads.
 
