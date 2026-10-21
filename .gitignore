@@ -1,0 +1,23 @@
+# secrets / OS files
+.env
+.env.*
+!.env.example
+creds/
+.DS_Store
+
+# python
+.venv/
+__pycache__/
+*.py[cod]
+.ruff_cache/
+.mypy_cache/
+*.egg-info/
+dist/
+build/
+
+# runtime
+*.db
+*.db-wal
+*.db-shm
+pipeline.config.yaml
+

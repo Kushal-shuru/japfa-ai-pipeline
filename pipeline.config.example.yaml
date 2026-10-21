@@ -1,0 +1,173 @@
+# Copy to pipeline.config.yaml (gitignored) and adjust. Secrets live in .env, never here.
+# Per-environment values are in .env too (see .env.example): the Jira project / JQL / field ids,
+# each repo's GitLab project and live-test `.env` path, the live tests' DB hosts and run values.
+
+jira:
+  statuses:                         # D127: In Dev until merged; Blocked = needs a person
+    todo: "To Do"
+    in_dev: "In Dev"
+    blocked: "Blocked"
+    rft: "RFT"
+    testing: "Testing"                # set by QA
+    qa_failed: "QA Failed"            # set by QA (after filing each bug as its own Jira ticket)
+    qa_passed: "QA Passed"            # set by QA
+
+# One entry per product repository. `name` = the repo's name in this pipeline (also the folder
+# name in the ticket workspace and the choice shown by `implement`). Its GitLab project path and
+# the path of its developer clone's `.env` (live tests) are NOT here: they are in .env as
+# REPO_<NAME IN CAPITALS, "-" AS "_">_GITLAB_PROJECT and _ENV_FROM (see .env.example).
+# default_branch = the branch every ticket branch starts from and every merge request targets
+# (`develop`; ours is `pipeline_develop`, a copy of develop the pipeline is allowed to target).
+# commands: install and lint required; test / sanity optional (D20); build for frontend.
+# lint may use {files} = changed files only (D21); extra = additional checks run by verify.
+repos:
+  - name: nodejs-ws2targetsalesincentive
+    role: service
+    default_branch: develop
+    commands:
+      install: "npm ci"
+      lint: "npx eslint --config eslint.config.mjs {files}"
+      test: "npm test"
+      extra: ["npm run coverage:check", "npm run check:circular"]
+    stack:                            # P10: how the live acceptance tests run this repo
+      start: "node src/app.js"
+      health_path: /api/v1/health-checker
+      db: { host: PG_HOST_WS2TARGETSALES, port: PG_PORT_WS2TARGETSALES, name: PG_DB_WS2TARGETSALES, user: PG_USER_WS2TARGETSALES, password: PG_PASSWORD_WS2TARGETSALES, ssl: PG_SSL_WS2TARGETSALES }
+      env:                            # overrides; {{…}} filled per run
+        RUN_MODE: api                 # never a worker: queues stay local
+        APP_LOG_DIR: "{{stack.dir}}/logs-ws2/"   # not the .env's /app/logs (Docker)
+        SERVICE_CREDENTIALS: '[{"client_id":"{{run.client_id}}","client_secret":"{{run.client_secret}}"}]'
+        REDIS_HOST: "{{redis.host}}"
+        REDIS_PORT: "{{redis.port}}"
+        REDIS_USER: default
+        REDIS_PASSWORD: "{{redis.password}}"
+        REDIS_USE_TLS: "true"
+        REDIS_KEY_PREFIX: "aipl:"
+        PARTNER_PUBLIC_BASE_URL: "{{mock:partner_public}}"
+        CLOSIO_WS2_BASE_URL: "{{mock:closio_ws2}}"
+        WS2JASPERREPORT_BASE_URL: "{{mock:jasper}}"
+        S3_ENDPOINT: "{{mock:s3}}"     # blocked: no real objects from tests
+    # env_file: "$PIPELINE_HOME/env/nodejs-ws2targetsalesincentive.env"  # optional test .env (never production); default = the repo's .env.example
+  - name: nodejs-ws1closio
+    role: gateway
+    default_branch: develop
+    commands:
+      install: "npm ci"
+      lint: "npx eslint --config eslint.config.mjs {files}"
+      extra: ["npm run check:circular"]
+    stack:
+      start: "node src/app.js"
+      health_path: /api/v1/health-checker
+      env:
+        WS2TARGETSALES_BASE_URL: "{{url:nodejs-ws2targetsalesincentive}}"
+        APP_LOG_DIR: "{{stack.dir}}/logs-ws1/"
+        SECURE_TRANSMISSION_TYPE: "0"   # plain JSON (no AES): the tests send X-Secure-Transmission-Type 0
+        WS1_AUTH_CLIENT_ID: "{{run.client_id}}"       # what ws1 sends to ws2
+        WS1_AUTH_SECRET_KEY: "{{run.client_secret}}"
+        SESSION_SECRET: "{{run.session_secret}}"      # the pipeline signs the session cookie with it
+        SESSION_COOKIE_SECURE: "false"                # plain http on localhost
+        REDIS_HOST: "{{redis.host}}"
+        REDIS_PORT: "{{redis.port}}"
+        REDIS_USER: default
+        REDIS_PASSWORD: "{{redis.password}}"
+        REDIS_KEY_PREFIX: "aipl:"
+        WS2AUTH_BASE_URL: "{{mock:closio_auth}}"     # the login service: blocked (sessions are seeded)
+
+agents:
+  single_session: true              # one coder session + one reviewer session per ticket (all repos, one folder); false = one run per repo, in parallel
+  default_provider: claude          # claude | codex
+  fallback_provider: codex          # retry once here on provider_limit; null = Needs Human
+  providers:
+    claude: { auth: subscription }  # subscription | api_key
+    codex:  { auth: subscription }  # subscription | api_key
+  roles:                            # provider omitted = default_provider; model null = provider default
+                                    # model/effort apply to the role's own provider only (D45, D70);
+                                    # an explicit model also overrides a repo's .claude/settings.json pin
+    planner:    { provider: claude, model: claude-sonnet-5, effort: low, max_turns: 100, timeout_min: 40 }  # D128: inputs prepared, reads in parallel
+    coder:      { provider: claude, model: claude-sonnet-5, effort: medium, max_turns: 300, timeout_min: 60 }
+    reviewer:   { provider: claude, model: claude-sonnet-5, effort: medium, max_turns: 100, timeout_min: 30 }
+    deployment: { provider: claude, model: claude-haiku-4-5, max_turns: 80, timeout_min: 20 }  # P9: writes from given facts (no effort on Haiku)
+    summary:    { provider: claude, model: claude-haiku-4-5, max_turns: 8, timeout_min: 3 }  # D209: the merge request description (a tiny run, outside the pool)
+    qa_notes:   { provider: claude, model: claude-haiku-4-5, max_turns: 60, timeout_min: 20 }  # P9: writes from given facts (no effort on Haiku)
+
+limits:
+  max_review_rounds: 6
+  max_qa_rounds: 5
+  max_verify_attempts: 4
+  max_replans: 3
+  max_plan_revisions: 10
+
+agent_pool:                         # named slots; slots = concurrency
+  coder:    [{name: Coder-A, provider: claude}, {name: Coder-B, provider: codex}, {name: Coder-C, provider: claude}]
+  reviewer: [{name: Reviewer-A, provider: claude}, {name: Reviewer-B, provider: codex}]
+  deploy:   [{name: Deploy-A, provider: claude}]
+
+gates:                              # manual = wait for a human command/button; auto = continue
+  # Automatic review loop (D112): review, fix and re_review all `auto` → the Coder hands the
+  # merge requests to the Reviewer, the Reviewer hands the must-fix findings back (scope:
+  # chat.default_fix_scope), … until the review passes or limits.max_review_rounds is reached.
+  start: manual
+  plan_approval: manual
+  review: auto                      # P9: the review starts when the MRs open
+  fix: auto                         # P9: blockers + majors are fixed by themselves (default_fix_scope)
+  re_review: auto                   # P9: then reviewed again, until it passes or a limit is hit
+  deploy_doc: auto
+  qa_fix: manual
+
+chat:
+  bot_name: "SDLC Bot"
+  agents:                           # the team inside the bot (D111): who speaks and owns which work
+    coder: Coder                    # plans, codes, fixes review findings and change requests
+    reviewer: Reviewer              # reviews; can accept as it is
+    devops: DevOps                  # the deployment note + DevOps steps (D113)
+  default_fix_scope: "major+"       # used when the fix gate is auto
+  verbosity: minimal                # P9: plan, one merge-request card, decisions, blockers; `normal` = every step
+  reminder_hours: 0                 # >0: a person-waiting gate this long → one reminder in the thread (P8)
+  channel_summaries: true           # needs help / limits / ready to merge → one line in the main channel
+  digest_time: null                 # "09:00" = a daily digest in the main channel (server time)
+  local_port: 8765                  # localhost: `pipeline say` and an attached `pipeline cli`
+
+chat_llm:                           # short plain texts (merge request descriptions), D209
+  provider: agent                   # agent = a small Claude / Codex run (agents.roles.summary picks which) | none = templates
+  timeout_s: 120
+  summaries: true                   # false = templates only
+  send_code: false                  # never put code excerpts into the prompt unless true
+
+polling: { jira_seconds: 45, gitlab_seconds: 45, migration_seconds: 120 }
+qa: { base_url_placeholder: "{{QA_BASE_URL}}", token_placeholder: "{{QA_TOKEN}}", execute_locally: false }
+git:
+  coder_author: "AI Coder <ai-coder@example.com>"
+  deploy_author: "AI Deploy <ai-deploy@example.com>"
+  review_mode: local                  # local | gitlab (env REVIEW_MODE wins): review before any merge request exists (D207)
+  allow_same_gitlab_identity: false   # one GitLab account as coder and reviewer (D194); needs "approve own MR" allowed
+
+demo:                               # `pipeline demo-reset` without arguments resets these (P8)
+  tickets: []                       # e.g. [DEMO-8]
+
+acceptance:                           # P10: live acceptance tests before the merge requests
+  mode: "off"                       # off | advisory (report, never block) | required
+  # DB hosts and the partner / user the tests run as: ACCEPTANCE_* in .env (see .env.example)
+  identities:
+    ws2_client:
+      kind: headers
+      repo: nodejs-ws2targetsalesincentive
+      description: "the gateway's client credentials + the run's partner and user"
+      headers: { x-client-id: "{{run.client_id}}", x-client-secret: "{{run.client_secret}}", X-Partner-Id: "{{run.partner_id}}", X-User-Id: "{{run.user_uuid}}", X-User-Name: "{{run.user_id}}" }
+    closio_user:
+      kind: seeded_session
+      repo: nodejs-ws1closio
+      description: "a logged-in dashboard user of the run's partner, with every route permission"
+      session: { user_pk: "{{run.user_pk}}", user_uuid: "{{run.user_uuid}}", user_id: "{{run.user_id}}", user_name: "AI test user", app_pk: 1, roles: [], obj_perms: all, partner_id: "{{run.partner_id}}" }
+  default_identity: { nodejs-ws2targetsalesincentive: ws2_client, nodejs-ws1closio: closio_user }
+  repo_headers:                       # sent on every call, also without a login
+    nodejs-ws1closio: { X-Secure-Transmission-Type: "0" }
+  externals:
+    partner_public: { mode: fixtures, real_url_env: PARTNER_PUBLIC_BASE_URL, description: "partner users (GET /users, /users/{id})" }
+    closio_ws2: { mode: fixtures, real_url_env: CLOSIO_WS2_BASE_URL, description: "product submissions, field lists" }
+    jasper: { mode: blocked, description: "report server" }
+    s3: { mode: blocked, description: "AWS S3: no real objects from tests" }
+    closio_auth: { mode: blocked, description: "the login service (sessions are seeded instead)" }
+  notes:
+    - "The gateway (ws1) turns every 404 from a service into HTTP 597 (src/middlewares/errorHandler.js)."
+    - "The service (ws2) checks x-client-id / x-client-secret (verifyClientAuth) and takes the partner from X-Partner-Id."
+    - "Gateway routes whose schema has isRequestChecksum: true need an x-checksum header the tests can't compute yet: put criteria that only such routes prove in `blocked`."
