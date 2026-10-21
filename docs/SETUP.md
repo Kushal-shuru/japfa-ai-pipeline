@@ -213,6 +213,8 @@ For **each** repo the pipeline will work on (gateway, services; Vue is not suppo
 - [ ] A working lint on changed files and a working test command
 - [ ] Rules the agents must never break go **in the repo's own `CLAUDE.md`** (for example "never edit the authentication middleware or `validateSchema`", "validation lives in the controller, the service only does CRUD"). Files that must never change can also be listed in `repos[].shared_paths` in the config (enforced).
 
+**For now, the reference branch is `pipeline_develop`.** In `nodejs-ws1closio` (gateway) and `nodejs-ws2targetsalesincentive` (service), the branch `pipeline_develop` already has all of these files (`CLAUDE.md` / `AGENTS.md`, `REVIEW.md`, `DEPLOYMENT_TEMPLATE.md`, `.env.example`, the `.agent/` ignore), so look there for how they should read. For testing, `pipeline_develop` is also set as the repo's `default_branch` in the config instead of `develop`: tickets start from it and merge requests target it (§5, §9.1). Keep it up to date with `develop`, and switch `default_branch` back when the pipeline goes live.
+
 **On this machine** (only for live acceptance tests, §10)
 - [ ] A normal clone of the repo with a working `.env` for development (test values, never production). Its path goes in `.env` as `REPO_<NAME>_ENV_FROM`.
 
