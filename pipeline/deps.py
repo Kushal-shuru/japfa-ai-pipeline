@@ -104,7 +104,7 @@ def make_deps(
         return Deps(
             jira=FakeJira(store),
             gitlab=FakeGitLab(),
-            spec=FakeSpec(),
+            spec=_spec(FakeSpec(), config),
             store=store,
             config=config,
             secrets=secrets,
@@ -135,8 +135,11 @@ def make_deps(
         gitlab=GitLabClient(
             secrets.gitlab_base_url, token, secrets.gitlab_reviewer_token.get_secret_value(), store
         ),
-        spec=GoogleDocsSpec(
-            secrets.google_oauth_client_path, secrets.google_token_path, home / "specs"
+        spec=_spec(
+            GoogleDocsSpec(
+                secrets.google_oauth_client_path, secrets.google_token_path, home / "specs"
+            ),
+            config,
         ),
         store=store,
         config=config,
