@@ -19,7 +19,7 @@ People keep control of which tickets the AI takes, the plan, which review findin
 | [docs/SETUP.md](docs/SETUP.md) | **Start here.** Everything to install and configure, end to end: tools, agents, Jira, GitLab, Google, `.env`, config, live tests, first run, running it for a team |
 | [docs/GUIDE.md](docs/GUIDE.md) | Working tickets: every command and every step of a ticket from Jira to merged code, for developers, QA and DevOps |
 | [docs/PROJECT.md](docs/PROJECT.md) | What the project is: all features, the architecture, how it is built |
-| [docs/WALKTHROUGH.html](docs/WALKTHROUGH.html) | An interactive walkthrough with diagrams (download the file and open it in a browser) |
+| [Interactive walkthrough](https://claude.ai/artifact/KJg6vD2LFhFmHKvj1shLTi) | The walkthrough with diagrams (also linked at the top of [docs/PROJECT.md](docs/PROJECT.md)) |
 | [CLAUDE.md](CLAUDE.md) | Master context: contracts, graph, commands, guardrails (also read by Claude Code) |
 | [docs/PROGRESS.md](docs/PROGRESS.md) | Decisions, known issues, measurements, session log |
 | [docs/DESIGN.md](docs/DESIGN.md) | The early design (history) |

@@ -1,5 +1,7 @@
 # PROJECT: what the AI SDLC pipeline is and how it is built
 
+**Interactive walkthrough with diagrams:** [https://claude.ai/artifact/KJg6vD2LFhFmHKvj1shLTi](https://claude.ai/artifact/KJg6vD2LFhFmHKvj1shLTi)
+
 Read this to know every feature of the pipeline and how it works inside. To install it:
 [SETUP.md](SETUP.md). To use it day to day: [GUIDE.md](GUIDE.md). The exact data contracts, tables and
 guardrails are in [CLAUDE.md](../CLAUDE.md); every design decision, with its reason, is a row in
